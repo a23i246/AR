@@ -10,12 +10,19 @@
   </head>
   <body style="margin: 0; overflow: hidden;">
     <a-scene embedded arjs>
-      <!-- Hiroマーカーを認識したらボックスを表示 -->
-      <a-marker type="pattern" url="marker.patt">
-        <a-box position="0 0.5 0" material="color: red;"></a-box>
-      </a-marker>
-      <!-- ARカメラ -->
-      <a-entity camera></a-entity>
-    </a-scene>
+    <a-assets>
+        <img id="dog-photo" src="Stella-Sora.jpg">
+    </a-assets>
+
+    <a-marker preset="hiro">
+        <a-image 
+            src="#dog-photo" 
+            position="0 0.01 0" 
+            rotation="-90 0 0" 
+            width="1" 
+            height="1.3">
+        </a-image>
+    </a-marker>
+</a-scene>
   </body>
 </html>

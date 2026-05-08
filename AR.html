@@ -2,57 +2,70 @@
 <html>
   <head>
     <meta charset="utf-8">
-    <title>AR.js スワイプ回転 サンプル</title>
+    <title>AR.js 自転 サンプル</title>
     <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
     <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
 
     <script>
+      // --- 1. スワイプで回転させるコンポーネント ---
       AFRAME.registerComponent('swipe-rotate', {
-        schema: {
-          speed: { default: 0.5 } // 回転の感度（数字を大きくすると速く回ります）
-        },
+        schema: { speed: { default: 0.5 } },
         init: function () {
           this.touchStartX = 0;
           this.touchStartY = 0;
           this.isDragging = false;
-
-          // 画面に指が触れたとき
           window.addEventListener('touchstart', (e) => {
             this.isDragging = true;
             this.touchStartX = e.touches[0].clientX;
             this.touchStartY = e.touches[0].clientY;
           });
-
-          // 画面から指が離れたとき
-          window.addEventListener('touchend', () => {
-            this.isDragging = false;
-          });
-
-          // 指を動かしているとき（スワイプ/スクロール）
+          window.addEventListener('touchend', () => { this.isDragging = false; });
           window.addEventListener('touchmove', (e) => {
             if (!this.isDragging) return;
-
-            // 現在の指の位置
             const currentX = e.touches[0].clientX;
             const currentY = e.touches[0].clientY;
-
-            // 移動量を計算
             const deltaX = currentX - this.touchStartX;
             const deltaY = currentY - this.touchStartY;
-
-            // オブジェクトの現在の回転角度を取得
             const rotation = this.el.getAttribute('rotation');
-
-            // X軸（上下）とY軸（左右）の回転を更新
+            
+            // X軸（上下）とY軸（左右）を回転させる
             this.el.setAttribute('rotation', {
               x: rotation.x - deltaY * this.data.speed,
               y: rotation.y + deltaX * this.data.speed,
               z: rotation.z
             });
-
-            // 次の計算のために現在位置を保存
+            
             this.touchStartX = currentX;
             this.touchStartY = currentY;
+          });
+        }
+      });
+
+      // --- 2. オブジェクトの中心を【正確に】合わせるコンポーネント ---
+      AFRAME.registerComponent('auto-center', {
+        init: function () {
+          this.el.addEventListener('model-loaded', () => {
+            const mesh = this.el.getObject3D('mesh');
+            if (!mesh) return;
+
+            // 親の回転などの影響を排除するため、透明なクローンを作って純粋なサイズを測る
+            const clone = mesh.clone();
+            clone.position.set(0, 0, 0);
+            clone.rotation.set(0, 0, 0);
+            clone.scale.set(1, 1, 1);
+            clone.updateMatrixWorld(true);
+
+            // 純粋なローカルサイズから中心を計算
+            const box = new THREE.Box3().setFromObject(clone);
+            const center = new THREE.Vector3();
+            box.getCenter(center);
+
+            // 中心が親要素の原点(0,0,0)に重なるように、逆方向にずらす
+            this.el.setAttribute('position', {
+              x: -center.x,
+              y: -center.y,
+              z: -center.z
+            });
           });
         }
       });
@@ -62,17 +75,23 @@
     <a-scene embedded arjs>
       <a-assets>
         <a-asset-item id="fire-obj" src="たんQ.obj"></a-asset-item>
-        </a-assets>
+      </a-assets>
 
       <a-marker preset="hiro">
-        <a-entity 
-            id="model"
-            obj-model="obj: #fire-obj;" 
-            scale="1 1 1" 
-            position="0 0 0" 
-            rotation="-90 0 0"
-            swipe-rotate>
+        
+        <a-entity swipe-rotate>
+          
+          <a-entity rotation="-90 0 0">
+            
+            <a-entity 
+                obj-model="obj: #fire-obj;" 
+                scale="1 1 1"
+                auto-center>
+            </a-entity>
+
+          </a-entity>
         </a-entity>
+
       </a-marker>
       
       <a-entity camera></a-entity>

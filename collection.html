@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>ARコレクション図鑑</title>
+  <style>
+    body { font-family: sans-serif; background: #f0f0f0; margin: 0; padding: 20px; text-align: center; }
+    h1 { color: #333; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 15px; margin-top: 20px; }
+    .item { background: white; padding: 15px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+    .item img { width: 80px; height: 80px; object-fit: contain; margin-bottom: 10px; }
+    .item-name { font-weight: bold; font-size: 14px; color: #ff5722; }
+    .back-btn { display: inline-block; margin-top: 30px; padding: 10px 20px; background: #333; color: white; text-decoration: none; border-radius: 5px; }
+  </style>
+</head>
+<body>
+
+  <h1>ARコレクション図鑑</h1>
+  <div id="status">読み込み中...</div>
+  <div class="grid" id="collection-grid">
+    </div>
+
+  <a href="AR.html" class="back-btn">ARカメラに戻る</a>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+    // ★AR.htmlと同じfirebaseConfigをここに貼り付けてください★
+    const firebaseConfig = {
+      apiKey: "...",
+      authDomain: "...",
+      projectId: "...",
+      storageBucket: "...",
+      messagingSenderId: "...",
+      appId: "..."
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const auth = getAuth(app);
+
+    // ログイン状態を確認してデータを取得
+    onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        const grid = document.getElementById('collection-grid');
+        const status = document.getElementById('status');
+        
+        try {
+          // Firestoreからそのユーザーのコレクションを取得
+          const querySnapshot = await getDocs(collection(db, "users", user.uid, "collections"));
+          
+          if (querySnapshot.empty) {
+            status.innerText = "まだコレクションがありません。マーカーを探してみよう！";
+          } else {
+            status.style.display = 'none';
+            querySnapshot.forEach((doc) => {
+              const data = doc.data();
+              // アイテムの枠を作成
+              const itemDiv = document.createElement('div');
+              itemDiv.className = 'item';
+              itemDiv.innerHTML = `
+                <div class="item-name">${data.markerId || data.name}</div>
+                <div style="font-size: 10px; color: #999;">${data.timestamp?.toDate().toLocaleString() || ""}</div>
+              `;
+              grid.appendChild(itemDiv);
+            });
+          }
+        } catch (e) {
+          console.error(e);
+          status.innerText = "データの読み込みに失敗しました。";
+        }
+      }
+    });
+  </script>
+</body>
+</html>

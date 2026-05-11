@@ -6,6 +6,47 @@
     <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
     <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
 
+    <script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+  import { getFirestore, doc, setDoc, getDoc, collection } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+  import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+  // --- あなたのFirebase設定コードをここに貼り付け ---
+  const firebaseConfig = {
+    apiKey: "AIzaSyB6sOyrSwjY7fZaPEGDvn0iormTPWhjQsY",
+    authDomain: "ar-stamp-6d9ed.firebaseapp.com",
+    projectId: "ar-stamp-6d9ed",
+    storageBucket: "ar-stamp-6d9ed.firebasestorage.app",
+    messagingSenderId: "238550666098",
+    appId: "1:238550666098:web:8c161928290c093bf8abeb",
+    measurementId: "G-44D1V7P76C"
+  };
+  // -------------------------------------------
+
+  // Firebaseの初期化
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+  const auth = getAuth(app);
+
+  // 匿名ログインの実行
+  signInAnonymously(auth).catch((error) => {
+    console.error("ログインエラー:", error);
+  });
+
+  // ログイン状態の確認（ユーザーIDを取得するため）
+  let uid = "";
+  onAuthStateChanged(auth, (user) => {
+    if (user) {
+      uid = user.uid;
+      console.log("ログイン完了！ ユーザーID:", uid);
+    }
+  });
+
+  // 後で使うためにグローバル変数として公開（簡易的な実装のため）
+  window.db = db;
+  window.getUid = () => uid;
+</script>
+
     <script>
       // --- 1. スワイプで回転させるコンポーネント ---
       AFRAME.registerComponent('swipe-rotate', {

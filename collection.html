@@ -8,55 +8,63 @@
   <style>
     body { font-family: sans-serif; background: #f0f0f0; margin: 0; padding: 20px; text-align: center; }
     h1 { color: #333; }
+    
+    /* 図鑑のグリッド表示 */
     .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 15px; margin-top: 20px; }
-    .item { background: white; padding: 15px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+    .item { background: white; padding: 15px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); transition: 0.2s; }
+    .item:active { transform: scale(0.95); }
     .item-name { font-weight: bold; font-size: 14px; color: #ff5722; }
+    
     .back-btn { display: inline-block; margin-top: 30px; padding: 10px 20px; background: #333; color: white; text-decoration: none; border-radius: 5px; }
 
-    /* 詳細表示用のモーダルスタイル */
+    /* --- 詳細画面（モーダル）のスタイル --- */
     .modal {
       display: none;
       position: fixed;
       z-index: 2000;
       top: 0; left: 0;
       width: 100%; height: 100%;
-      background-color: rgba(0,0,0,0.8);
+      background-color: rgba(0,0,0,0.85);
     }
     .modal-content {
       background-color: white;
-      margin: 5% auto;
+      margin: 10% auto;
       padding: 20px;
-      width: 90%;
-      max-width: 500px;
-      height: 80%;
-      border-radius: 15px;
+      width: 85%;
+      max-width: 450px;
+      border-radius: 20px;
       position: relative;
-      display: flex;
-      flex-direction: column;
+      text-align: center;
     }
+    
+    /* 3D表示エリア */
     #model-container {
       width: 100%;
-      height: 60%;
-      background: #eee;
-      border-radius: 10px;
+      height: 250px; /* 高さを固定して見切れを防ぐ */
+      background: #f9f9f9;
+      border-radius: 15px;
       overflow: hidden;
       margin-bottom: 15px;
+      position: relative;
+      border: 1px solid #eee;
     }
-    #modal-desc {
-      flex: 1;
-      overflow-y: auto;
-      text-align: left;
-      padding: 0 10px;
-      font-size: 14px;
-      line-height: 1.5;
-    }
+
+    #modal-title { margin: 10px 0; color: #333; }
+    #modal-desc { font-size: 14px; color: #666; line-height: 1.5; text-align: left; padding: 0 10px; }
+
+    /* 閉じるボタン（×） */
     .close-btn {
       position: absolute;
-      top: 10px; right: 15px;
-      font-size: 28px;
+      top: -15px; right: -15px;
+      width: 40px; height: 40px;
+      background: #ff5722;
+      color: white;
+      border-radius: 50%;
+      font-size: 24px;
+      line-height: 40px;
       cursor: pointer;
-      z-index: 10;
-      color: #333;
+      z-index: 3000; /* A-Frameより手前に表示 */
+      box-shadow: 0 2px 10px rgba(0,0,0,0.3);
     }
   </style>
 </head>
@@ -70,15 +78,15 @@
 
   <div id="item-modal" class="modal">
     <div class="modal-content">
-      <span class="close-btn" id="modal-close">&times;</span>
+      <div class="close-btn" id="modal-close">&times;</div>
       <div id="model-container"></div>
-      <h2 id="modal-title" style="margin: 10px 0;">名前</h2>
+      <h2 id="modal-title">名前</h2>
       <p id="modal-desc">説明文</p>
     </div>
   </div>
 
   <script>
-    // --- 1. スワイプで回転させるコンポーネント ---
+    // --- 1. スワイプ回転コンポーネント ---
     AFRAME.registerComponent('swipe-rotate', {
       schema: { speed: { default: 0.5 } },
       init: function () {
@@ -91,20 +99,19 @@
         this.el.sceneEl.addEventListener('touchend', () => { this.isDragging = false; });
         this.el.sceneEl.addEventListener('touchmove', (e) => {
           if (!this.isDragging) return;
-          const currentX = e.touches[0].clientX;
-          const deltaX = currentX - this.touchStartX;
+          const deltaX = e.touches[0].clientX - this.touchStartX;
           const rotation = this.el.getAttribute('rotation');
           this.el.setAttribute('rotation', {
             x: rotation.x,
             y: rotation.y + deltaX * this.data.speed,
             z: rotation.z
           });
-          this.touchStartX = currentX;
+          this.touchStartX = e.touches[0].clientX;
         });
       }
     });
 
-    // --- 2. オブジェクトの中心を正確に合わせるコンポーネント ---
+    // --- 2. 中心合わせコンポーネント ---
     AFRAME.registerComponent('auto-center', {
       init: function () {
         this.el.addEventListener('model-loaded', () => {
@@ -113,11 +120,7 @@
           const box = new THREE.Box3().setFromObject(mesh);
           const center = new THREE.Vector3();
           box.getCenter(center);
-          this.el.setAttribute('position', {
-            x: -center.x,
-            y: -center.y,
-            z: -center.z
-          });
+          this.el.setAttribute('position', { x: -center.x, y: -center.y, z: -center.z });
         });
       }
     });
@@ -126,9 +129,9 @@
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
     import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+    import { getAuth } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-    // ★Firebase設定（ここをご自身のものに書き換えてください）
+    // Firebase設定（あなた専用のコード）
     const firebaseConfig = {
       apiKey: "AIzaSyB6sOyrSwjY7fZaPEGDvn0iormTPWhjQsY",
       authDomain: "ar-stamp-6d9ed.firebaseapp.com",
@@ -143,49 +146,39 @@
     const db = getFirestore(app);
     const auth = getAuth(app);
 
-    // キャラクターの基本データ（説明文やモデルファイル名）
+    // キャラクター情報
     const charData = {
       "hiro": {
-        name: "たんQ",
-        desc: "いつも元気な探究心の塊。ARの世界から飛び出してきたぞ！指でスワイプして観察してみよう。",
+        name: "たんQ君",
+        desc: "いつも元気な探求心の塊！ARマーカーから飛び出して、君のコレクションに加わったよ。指で回してよく見てみよう。",
         model: "たんQ.obj"
       }
-      // 他のマーカーが増えたらここに追加
+      // 他のマーカー(例: "kanji")を増やす場合はここに追加
     };
 
-    onAuthStateChanged(auth, async (user) => {
+    auth.onAuthStateChanged(async (user) => {
       if (user) {
         const grid = document.getElementById('collection-grid');
         const status = document.getElementById('status');
-        
         try {
           const querySnapshot = await getDocs(collection(db, "users", user.uid, "collections"));
-          
           if (querySnapshot.empty) {
-            status.innerText = "まだコレクションがありません。";
+            status.innerText = "まだコレクションがありません。マーカーを探してゲットしよう！";
           } else {
             status.style.display = 'none';
             querySnapshot.forEach((doc) => {
               const data = doc.data();
               const mId = data.markerId || doc.id;
-              const charInfo = charData[mId] || { name: mId, desc: "詳細データがありません。", model: "" };
+              const info = charData[mId] || { name: mId, desc: "詳細データがありません。", model: "" };
 
               const itemDiv = document.createElement('div');
               itemDiv.className = 'item';
-              itemDiv.style.cursor = 'pointer';
-              itemDiv.innerHTML = `
-                <div class="item-name">${charInfo.name}</div>
-                <div style="font-size: 10px; color: #999;">${data.timestamp?.toDate().toLocaleString() || ""}</div>
-              `;
-
-              itemDiv.onclick = () => showDetail(charInfo);
+              itemDiv.innerHTML = `<div class="item-name">${info.name}</div>`;
+              itemDiv.onclick = () => showDetail(info);
               grid.appendChild(itemDiv);
             });
           }
-        } catch (e) {
-          console.error(e);
-          status.innerText = "データの取得に失敗しました。";
-        }
+        } catch (e) { status.innerText = "データの取得に失敗しました。"; }
       }
     });
 
@@ -196,16 +189,15 @@
       container.innerHTML = '';
 
       if (info.model) {
+        // scale="0.3" で小さくし、camera position="5" でカメラを引いて見切れを防止
         const sceneHtml = `
           <a-scene embedded style="width: 100%; height: 100%;">
-            <a-assets>
-              <a-asset-item id="char-obj" src="${info.model}"></a-asset-item>
-            </a-assets>
+            <a-assets><a-asset-item id="model" src="${info.model}"></a-asset-item></a-assets>
             <a-entity swipe-rotate position="0 0 0">
-              <a-entity obj-model="obj: #char-obj" scale="0.4 0.4 0.4" auto-center></a-entity>
+              <a-entity obj-model="obj: #model" scale="0.3 0.3 0.3" auto-center></a-entity>
             </a-entity>
             <a-sky color="#fff"></a-sky>
-            <a-entity camera position="0 0 4" look-controls-enabled="false"></a-entity>
+            <a-entity camera position="0 0 5"></a-entity>
             <a-entity light="type: ambient; color: #BBB"></a-entity>
             <a-entity light="type: directional; color: #FFF; intensity: 0.8" position="-1 1 1"></a-entity>
           </a-scene>
@@ -217,7 +209,7 @@
 
     document.getElementById('modal-close').onclick = () => {
       document.getElementById('item-modal').style.display = 'none';
-      document.getElementById('model-container').innerHTML = '';
+      document.getElementById('model-container').innerHTML = ''; // メモリ解放
     };
   </script>
 </body>

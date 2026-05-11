@@ -3,14 +3,62 @@
 <head>
   <meta charset="utf-8">
   <title>ARコレクション図鑑</title>
+  <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
+  
   <style>
     body { font-family: sans-serif; background: #f0f0f0; margin: 0; padding: 20px; text-align: center; }
     h1 { color: #333; }
     .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 15px; margin-top: 20px; }
     .item { background: white; padding: 15px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-    .item img { width: 80px; height: 80px; object-fit: contain; margin-bottom: 10px; }
     .item-name { font-weight: bold; font-size: 14px; color: #ff5722; }
     .back-btn { display: inline-block; margin-top: 30px; padding: 10px 20px; background: #333; color: white; text-decoration: none; border-radius: 5px; }
+
+    /* --- 詳細画面（モーダル）のスタイル --- */
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 2000;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background-color: rgba(0,0,0,0.8);
+    }
+    .modal-content {
+      background-color: white;
+      margin: 5% auto; /* 少し上に詰める */
+      padding: 20px;
+      width: 90%;
+      max-width: 500px;
+      height: 80%; /* 高さを確保 */
+      border-radius: 15px;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+    }
+    
+    /* 3Dモデルを表示するエリアのスタイル */
+    #model-container {
+      width: 100%;
+      height: 60%; /* 上部6割を3Dに */
+      background: #ddd;
+      border-radius: 10px;
+      overflow: hidden;
+      margin-bottom: 15px;
+    }
+
+    #modal-desc {
+      flex: 1; /* 残りのスペースを説明文に */
+      overflow-y: auto; /* 長い説明はスクロール */
+      text-align: left;
+      padding: 0 10px;
+    }
+
+    .close-btn {
+      position: absolute;
+      top: 10px; right: 15px;
+      font-size: 24px;
+      cursor: pointer;
+      z-index: 10; /* A-Frameより前に出す */
+    }
   </style>
 </head>
 <body>
@@ -18,16 +66,60 @@
   <h1>ARコレクション図鑑</h1>
   <div id="status">読み込み中...</div>
   <div class="grid" id="collection-grid">
-    </div>
+  </div>
 
   <a href="AR.html" class="back-btn">ARカメラに戻る</a>
+
+  <div id="item-modal" class="modal">
+    <div class="modal-content">
+      <span class="close-btn" id="modal-close">&times;</span>
+      
+      <div id="model-container">
+        </div>
+
+      <h2 id="modal-title">名前</h2>
+      <p id="modal-desc">説明文がここに表示されます。</p>
+    </div>
+  </div>
+
+  <script>
+    // AR.htmlからスワイプ回転コンポーネントを移植
+    AFRAME.registerComponent('swipe-rotate', {
+      schema: { speed: { default: 0.5 } },
+      init: function () {
+        this.touchStartX = 0;
+        this.isDragging = false;
+        // モーダル内でのみ反応させるため、windowではなくSceneにイベントを付ける
+        this.el.sceneEl.addEventListener('touchstart', (e) => {
+          this.isDragging = true;
+          this.touchStartX = e.touches[0].clientX;
+        });
+        this.el.sceneEl.addEventListener('touchend', () => { this.isDragging = false; });
+        this.el.sceneEl.addEventListener('touchmove', (e) => {
+          if (!this.isDragging) return;
+          const currentX = e.touches[0].clientX;
+          const deltaX = currentX - this.touchStartX;
+          const rotation = this.el.getAttribute('rotation');
+          
+          // 図鑑なので、Y軸（左右）の回転だけにする
+          this.el.setAttribute('rotation', {
+            x: rotation.x,
+            y: rotation.y + deltaX * this.data.speed,
+            z: rotation.z
+          });
+          
+          this.touchStartX = currentX;
+        });
+      }
+    });
+  </script>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
     import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-    import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+    import { getAuth } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-    // ★AR.htmlと同じfirebaseConfigをここに貼り付けてください★
+    // ★あなたのFirebase設定コードをここに貼り付けてください★
     const firebaseConfig = {
         apiKey: "AIzaSyB6sOyrSwjY7fZaPEGDvn0iormTPWhjQsY",
         authDomain: "ar-stamp-6d9ed.firebaseapp.com",
@@ -42,38 +134,103 @@
     const db = getFirestore(app);
     const auth = getAuth(app);
 
+    // キャラクターデータの定義
+    const charData = {
+      "hiro": {
+        name: "たんQ",
+        desc: "いつも元気な探究心の塊。ARの世界から飛び出してきたぞ！指でスワイプして観察してみよう。",
+        model: "たんQ.obj" // AR.htmlと同じファイル名
+      },
+      "kanji": {
+        name: "漢字の精霊",
+        desc: "古くから伝わる知恵を持っている。難しい文字が得意。",
+        model: "kanji.obj" // 別のモデルがあれば
+      }
+    };
+
     // ログイン状態を確認してデータを取得
-    onAuthStateChanged(auth, async (user) => {
+    auth.onAuthStateChanged(async (user) => {
       if (user) {
         const grid = document.getElementById('collection-grid');
         const status = document.getElementById('status');
         
         try {
-          // Firestoreからそのユーザーのコレクションを取得
           const querySnapshot = await getDocs(collection(db, "users", user.uid, "collections"));
           
           if (querySnapshot.empty) {
-            status.innerText = "まだコレクションがありません。マーカーを探してみよう！";
+            status.innerText = "まだコレクションがありません。";
           } else {
             status.style.display = 'none';
             querySnapshot.forEach((doc) => {
               const data = doc.data();
-              // アイテムの枠を作成
+              const mId = data.markerId || doc.id;
+              const charInfo = charData[mId] || { name: mId, desc: "データなし", model: "" };
+
               const itemDiv = document.createElement('div');
               itemDiv.className = 'item';
+              itemDiv.style.cursor = 'pointer';
               itemDiv.innerHTML = `
-                <div class="item-name">${data.markerId || data.name}</div>
+                <div class="item-name">${charInfo.name}</div>
                 <div style="font-size: 10px; color: #999;">${data.timestamp?.toDate().toLocaleString() || ""}</div>
               `;
+
+              // --- タップした時の処理（3Dシーンを動的に生成） ---
+              itemDiv.onclick = () => {
+                showDetail(charInfo);
+              };
+
               grid.appendChild(itemDiv);
             });
           }
-        } catch (e) {
-          console.error(e);
-          status.innerText = "データの読み込みに失敗しました。";
-        }
+        } catch (e) { console.error(e); }
       }
     });
+
+    // 詳細画面を表示する関数
+    function showDetail(info) {
+      document.getElementById('modal-title').innerText = info.name;
+      document.getElementById('modal-desc').innerText = info.desc;
+      const container = document.getElementById('model-container');
+      
+      // 古いシーンがあれば削除（メモリ対策）
+      container.innerHTML = '';
+
+      if (info.model) {
+        // A-FrameのシーンをHTMLとして文字列で作る
+        // embededを付けることで、小さなエリアに表示できる
+        // cameraのpositionはモデル全体が見えるように調整
+        const sceneHtml = `
+          <a-scene embedded style="width: 100%; height: 100%;">
+            <a-assets>
+              <a-asset-item id="char-obj" src="${info.model}"></a-asset-item>
+            </a-assets>
+            
+            <a-entity swipe-rotate>
+              <a-entity obj-model="obj: #char-obj" scale="1 1 1" position="0 0 0" rotation="0 0 0">
+              </a-entity>
+            </a-entity>
+
+            <a-sky color="#fff"></a-sky>
+            <a-entity camera position="0 1 3" look-controls-enabled="false"></a-entity>
+            <a-entity light="type: ambient; color: #BBB"></a-entity>
+            <a-entity light="type: directional; color: #FFF; intensity: 0.6" position="-1 1 1"></a-entity>
+          </a-scene>
+        `;
+        // コンテナに追加（これで3Dが起動する）
+        container.innerHTML = sceneHtml;
+      } else {
+        container.innerHTML = '<p style="padding-top:50px;">3Dモデルがありません</p>';
+      }
+
+      document.getElementById('item-modal').style.display = 'block';
+    }
+
+    // 閉じるボタンの処理
+    document.getElementById('modal-close').onclick = () => {
+      document.getElementById('item-modal').style.display = 'none';
+      // シーンを削除してA-Frameを停止（重要）
+      document.getElementById('model-container').innerHTML = '';
+    };
   </script>
 </body>
 </html>

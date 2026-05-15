@@ -149,9 +149,9 @@
     // キャラクター情報
     const charData = {
       "hiro": {
-        name: "たんQ君",
-        desc: "いつも元気な探求心の塊！ARマーカーから飛び出して、君のコレクションに加わったよ。指で回してよく見てみよう。",
-        model: "たんQ.obj"
+        name: "コリトサウルス",
+        desc: "あなたの心を射抜いちゃうぞっ！ARマーカーから飛び出して、君のコレクションに加わったよ。指で回してよく見てみよう。",
+        model: "コリトサウルスglb/base_basic_pbr.glb"
       }
       // 他のマーカー(例: "kanji")を増やす場合はここに追加
     };
@@ -194,7 +194,7 @@
           <a-scene embedded style="width: 100%; height: 100%;">
             <a-assets><a-asset-item id="model" src="${info.model}"></a-asset-item></a-assets>
             <a-entity swipe-rotate position="0 0 0">
-              <a-entity obj-model="obj: #model" scale="0.3 0.3 0.3" auto-center></a-entity>
+              <a-entity gltf-model="#model" scale="0.3 0.3 0.3" auto-center></a-entity>
             </a-entity>
             <a-sky color="#fff"></a-sky>
             <a-entity camera position="0 0 5"></a-entity>

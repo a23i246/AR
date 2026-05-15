@@ -165,10 +165,14 @@
   <body style="margin: 0; overflow: hidden;">
     <button id="collect-btn">今のをゲットする！</button>
     <a href="collection.html" style="position: fixed; top: 10px; right: 10px; background: rgba(0,0,0,0.5); color: white; padding: 10px; text-decoration: none; border-radius: 5px; z-index: 1000;">図鑑を見る</a>
-    <a-scene embedded arjs>
+    <a-scene embedded arjs renderer="colorManagement: true; exposure: 1.2;">
       <a-assets>
         <a-asset-item id="Corythosaurus-glb" src="コリトサウルスglb/base_basic_pbr.glb"></a-asset-item>
       </a-assets>
+
+      <a-entity light="type: ambient; color: #BBB; intensity: 1.5"></a-entity>
+      <a-entity light="type: directional; color: #FFF; intensity: 0.8" position="-1 1 1"></a-entity>
+
 
       <a-marker preset="hiro">
         <a-entity swipe-rotate>

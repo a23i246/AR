@@ -167,17 +167,35 @@
     <a href="collection.html" style="position: fixed; top: 10px; right: 10px; background: rgba(0,0,0,0.5); color: white; padding: 10px; text-decoration: none; border-radius: 5px; z-index: 1000;">図鑑を見る</a>
     <a-scene embedded arjs>
       <a-assets>
-        <a-asset-item id="fire-obj" src="たんQ.obj"></a-asset-item>
+        <a-asset-item id="TanQ-obj" src="たんQ.obj"></a-asset-item>
+        <a-asset-item id="Corythosaurus-obj" src="コリトサウルスglb/base_basic_pbr.glb"></a-asset-item>
       </a-assets>
 
-      <a-marker preset="hiro">
+      <a-marker type="pattern" url="markers/たんQ.patt" id="TanQ">
         
         <a-entity swipe-rotate>
           
           <a-entity rotation="-90 0 0">
             
             <a-entity 
-                obj-model="obj: #fire-obj;" 
+                obj-model="obj: #TanQ-obj;" 
+                scale="1 1 1"
+                auto-center>
+            </a-entity>
+
+          </a-entity>
+        </a-entity>
+
+      </a-marker>
+
+      <a-marker preset="hiro" id="hiro">
+        
+        <a-entity swipe-rotate>
+          
+          <a-entity rotation="-90 0 0">
+            
+            <a-entity 
+                obj-model="obj: #Corythosaurus-obj;" 
                 scale="1 1 1"
                 auto-center>
             </a-entity>

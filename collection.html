@@ -1,216 +1,231 @@
 <!DOCTYPE html>
-<html>
+<html lang="ja">
 <head>
-  <meta charset="utf-8">
-  <title>ARコレクション図鑑</title>
-  <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
-  
-  <style>
-    body { font-family: sans-serif; background: #f0f0f0; margin: 0; padding: 20px; text-align: center; }
-    h1 { color: #333; }
-    
-    /* 図鑑のグリッド表示 */
-    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 15px; margin-top: 20px; }
-    .item { background: white; padding: 15px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); transition: 0.2s; }
-    .item:active { transform: scale(0.95); }
-    .item-name { font-weight: bold; font-size: 14px; color: #ff5722; }
-    
-    .back-btn { display: inline-block; margin-top: 30px; padding: 10px 20px; background: #333; color: white; text-decoration: none; border-radius: 5px; }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ARキャラクター図鑑</title>
+    <style>
+        :root {
+            --primary-color: #4a90e2;
+            --accent-color: #ff9800;
+            --bg-color: #f0f4f8;
+            --card-bg: #ffffff;
+        }
 
-    /* --- 詳細画面（モーダル）のスタイル --- */
-    .modal {
-      display: none;
-      position: fixed;
-      z-index: 2000;
-      top: 0; left: 0;
-      width: 100%; height: 100%;
-      background-color: rgba(0,0,0,0.85);
-    }
-    .modal-content {
-      background-color: white;
-      margin: 10% auto;
-      padding: 20px;
-      width: 85%;
-      max-width: 450px;
-      border-radius: 20px;
-      position: relative;
-      text-align: center;
-    }
-    
-    /* 3D表示エリア */
-    #model-container {
-      width: 100%;
-      height: 250px; /* 高さを固定して見切れを防ぐ */
-      background: #f9f9f9;
-      border-radius: 15px;
-      overflow: hidden;
-      margin-bottom: 15px;
-      position: relative;
-      border: 1px solid #eee;
-    }
+        body {
+            font-family: 'Helvetica Neue', Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 20px;
+            color: #333;
+        }
 
-    #modal-title { margin: 10px 0; color: #333; }
-    #modal-desc { font-size: 14px; color: #666; line-height: 1.5; text-align: left; padding: 0 10px; }
+        h1 {
+            text-align: center;
+            color: var(--primary-color);
+            font-size: 1.8rem;
+            margin-bottom: 30px;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+        }
 
-    /* 閉じるボタン（×） */
-    .close-btn {
-      position: absolute;
-      top: -15px; right: -15px;
-      width: 40px; height: 40px;
-      background: #ff5722;
-      color: white;
-      border-radius: 50%;
-      font-size: 24px;
-      line-height: 40px;
-      cursor: pointer;
-      z-index: 3000; /* A-Frameより手前に表示 */
-      box-shadow: 0 2px 10px rgba(0,0,0,0.3);
-    }
-  </style>
+        /* 図鑑リストのレイアウト */
+        #collection-list {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        /* キャラクターカードのデザイン */
+        .collection-item {
+            background: var(--card-bg);
+            border-radius: 15px;
+            display: flex;
+            overflow: hidden;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+            border: 1px solid #ddd;
+            animation: fadeIn 0.5s ease forwards;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* 左側：アイコンエリア */
+        .item-visual {
+            background: linear-gradient(135deg, #e0eafc, #cfdef3);
+            width: 100px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 50px;
+            border-right: 2px solid #f0f0f0;
+        }
+
+        /* 右側：テキストエリア */
+        .item-info {
+            padding: 15px;
+            flex: 1;
+        }
+
+        .item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .item-name {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: var(--primary-color);
+            margin: 0;
+        }
+
+        .item-date {
+            font-size: 0.7rem;
+            color: #999;
+        }
+
+        .item-desc {
+            font-size: 0.85rem;
+            line-height: 1.5;
+            color: #555;
+            background: #f9f9f9;
+            padding: 10px;
+            border-radius: 8px;
+            margin: 0;
+        }
+
+        .no-data {
+            text-align: center;
+            padding: 50px;
+            color: #888;
+        }
+
+        .back-btn {
+            display: block;
+            width: fit-content;
+            margin: 40px auto;
+            padding: 12px 30px;
+            background-color: var(--primary-color);
+            color: white;
+            text-decoration: none;
+            border-radius: 30px;
+            font-weight: bold;
+            transition: background 0.3s;
+        }
+
+        .back-btn:hover {
+            background-color: #357abd;
+        }
+    </style>
 </head>
 <body>
 
-  <h1>ARコレクション図鑑</h1>
-  <div id="status">読み込み中...</div>
-  <div class="grid" id="collection-grid"></div>
+    <h1>📘 キャラクター図鑑</h1>
 
-  <a href="AR.html" class="back-btn">ARカメラに戻る</a>
-
-  <div id="item-modal" class="modal">
-    <div class="modal-content">
-      <div class="close-btn" id="modal-close">&times;</div>
-      <div id="model-container"></div>
-      <h2 id="modal-title">名前</h2>
-      <p id="modal-desc">説明文</p>
+    <div id="collection-list">
+        <p class="no-data">読み込み中...</p>
     </div>
-  </div>
 
-  <script>
-    // --- 1. スワイプ回転コンポーネント ---
-    AFRAME.registerComponent('swipe-rotate', {
-      schema: { speed: { default: 0.5 } },
-      init: function () {
-        this.touchStartX = 0;
-        this.isDragging = false;
-        this.el.sceneEl.addEventListener('touchstart', (e) => {
-          this.isDragging = true;
-          this.touchStartX = e.touches[0].clientX;
+    <a href="AR.html" class="back-btn">カメラへ戻る</a>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js";
+        import { getFirestore, collection, query, getDocs, orderBy } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
+
+        // Firebase設定 (AR.htmlと同じもの)
+        const firebaseConfig = {
+            apiKey: "YOUR_API_KEY",
+            authDomain: "YOUR_AUTH_DOMAIN",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_STORAGE_BUCKET",
+            messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+            appId: "YOUR_APP_ID"
+        };
+
+        // キャラクターの詳しい情報（図鑑のデータ）
+        const charData = {
+            "TanQ": {
+                name: "たんQ君",
+                desc: "いつも元気な探求心の塊！ARマーカーから飛び出して、君のコレクションに加わったよ。指で回してよく見てみよう。",
+                icon: "🔍"
+            },
+            "kanji": {
+                name: "漢字の精霊",
+                desc: "古くから伝わる知恵の象徴。この精霊を見つけた者には、新しい発見があると言われている。",
+                icon: "📝"
+            },
+            // 未登録のマーカー用デフォルト設定
+            "unknown": {
+                name: "なぞの物体",
+                desc: "まだ詳しい情報が解明されていない未知のオブジェクトだ。これからの調査に期待しよう。",
+                icon: "❓"
+            }
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const collectionList = document.getElementById('collection-list');
+
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                loadCollections(user.uid);
+            } else {
+                window.location.href = "login.html";
+            }
         });
-        this.el.sceneEl.addEventListener('touchend', () => { this.isDragging = false; });
-        this.el.sceneEl.addEventListener('touchmove', (e) => {
-          if (!this.isDragging) return;
-          const deltaX = e.touches[0].clientX - this.touchStartX;
-          const rotation = this.el.getAttribute('rotation');
-          this.el.setAttribute('rotation', {
-            x: rotation.x,
-            y: rotation.y + deltaX * this.data.speed,
-            z: rotation.z
-          });
-          this.touchStartX = e.touches[0].clientX;
-        });
-      }
-    });
 
-    // --- 2. 中心合わせコンポーネント ---
-    AFRAME.registerComponent('auto-center', {
-      init: function () {
-        this.el.addEventListener('model-loaded', () => {
-          const mesh = this.el.getObject3D('mesh');
-          if (!mesh) return;
-          const box = new THREE.Box3().setFromObject(mesh);
-          const center = new THREE.Vector3();
-          box.getCenter(center);
-          this.el.setAttribute('position', { x: -center.x, y: -center.y, z: -center.z });
-        });
-      }
-    });
-  </script>
+        async function loadCollections(uid) {
+            try {
+                const q = query(collection(db, "users", uid, "collections"), orderBy("timestamp", "desc"));
+                const querySnapshot = await getDocs(q);
+                collectionList.innerHTML = "";
 
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-    import { getAuth } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+                if (querySnapshot.empty) {
+                    collectionList.innerHTML = '<p class="no-data">まだ何も見つけていないようです。<br>冒険に出かけよう！</p>';
+                    return;
+                }
 
-    // Firebase設定（あなた専用のコード）
-    const firebaseConfig = {
-      apiKey: "AIzaSyB6sOyrSwjY7fZaPEGDvn0iormTPWhjQsY",
-      authDomain: "ar-stamp-6d9ed.firebaseapp.com",
-      projectId: "ar-stamp-6d9ed",
-      storageBucket: "ar-stamp-6d9ed.firebasestorage.app",
-      messagingSenderId: "238550666098",
-      appId: "1:238550666098:web:8c161928290c093bf8abeb",
-      measurementId: "G-44D1V7P76C"
-    };
+                querySnapshot.forEach((doc) => {
+                    const data = doc.data();
+                    const markerId = doc.id; // "hiro" など
 
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
-    const auth = getAuth(app);
+                    // charDataから情報を取得。登録がなければ "unknown" を使う
+                    const info = charData[markerId] || charData["unknown"];
+                    
+                    // 日付のフォーマット
+                    let dateStr = "";
+                    if (data.timestamp) {
+                        const d = data.timestamp.toDate();
+                        dateStr = `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()}`;
+                    }
 
-    // キャラクター情報
-    const charData = {
-      "hiro": {
-        name: "たんQ君",
-        desc: "いつも元気な探求心の塊！ARマーカーから飛び出して、君のコレクションに加わったよ。指で回してよく見てみよう。",
-        model: "たんQ.obj"
-      }
-      // 他のマーカー(例: "kanji")を増やす場合はここに追加
-    };
-
-    auth.onAuthStateChanged(async (user) => {
-      if (user) {
-        const grid = document.getElementById('collection-grid');
-        const status = document.getElementById('status');
-        try {
-          const querySnapshot = await getDocs(collection(db, "users", user.uid, "collections"));
-          if (querySnapshot.empty) {
-            status.innerText = "まだコレクションがありません。マーカーを探してゲットしよう！";
-          } else {
-            status.style.display = 'none';
-            querySnapshot.forEach((doc) => {
-              const data = doc.data();
-              const mId = data.markerId || doc.id;
-              const info = charData[mId] || { name: mId, desc: "詳細データがありません。", model: "" };
-
-              const itemDiv = document.createElement('div');
-              itemDiv.className = 'item';
-              itemDiv.innerHTML = `<div class="item-name">${info.name}</div>`;
-              itemDiv.onclick = () => showDetail(info);
-              grid.appendChild(itemDiv);
-            });
-          }
-        } catch (e) { status.innerText = "データの取得に失敗しました。"; }
-      }
-    });
-
-    function showDetail(info) {
-      document.getElementById('modal-title').innerText = info.name;
-      document.getElementById('modal-desc').innerText = info.desc;
-      const container = document.getElementById('model-container');
-      container.innerHTML = '';
-
-      if (info.model) {
-        // scale="0.3" で小さくし、camera position="5" でカメラを引いて見切れを防止
-        const sceneHtml = `
-          <a-scene embedded style="width: 100%; height: 100%;">
-            <a-assets><a-asset-item id="model" src="${info.model}"></a-asset-item></a-assets>
-            <a-entity swipe-rotate position="0 0 0">
-              <a-entity obj-model="obj: #model" scale="0.3 0.3 0.3" auto-center></a-entity>
-            </a-entity>
-            <a-sky color="#fff"></a-sky>
-            <a-entity camera position="0 0 5"></a-entity>
-            <a-entity light="type: ambient; color: #BBB"></a-entity>
-            <a-entity light="type: directional; color: #FFF; intensity: 0.8" position="-1 1 1"></a-entity>
-          </a-scene>
-        `;
-        container.innerHTML = sceneHtml;
-      }
-      document.getElementById('item-modal').style.display = 'block';
-    }
-
-    document.getElementById('modal-close').onclick = () => {
-      document.getElementById('item-modal').style.display = 'none';
-      document.getElementById('model-container').innerHTML = ''; // メモリ解放
-    };
-  </script>
+                    // カードのHTML作成
+                    const card = document.createElement('div');
+                    card.className = 'collection-item';
+                    card.innerHTML = `
+                        <div class="item-visual">${info.icon}</div>
+                        <div class="item-info">
+                            <div class="item-header">
+                                <h2 class="item-name">${info.name}</h2>
+                                <span class="item-date">発見: ${dateStr}</span>
+                            </div>
+                            <p class="item-desc">${info.desc}</p>
+                        </div>
+                    `;
+                    collectionList.appendChild(card);
+                });
+            } catch (e) {
+                console.error(e);
+                collectionList.innerHTML = '<p class="no-data">読み込みエラー</p>';
+            }
+        }
+    </script>
 </body>
 </html>

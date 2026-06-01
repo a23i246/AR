@@ -120,10 +120,6 @@
       font-family: sans-serif;
     }
 
-    /*
-      AR.js / A-Frame の canvas がボタンの上にかぶさることがあるため、
-      操作用UIはかなり大きい z-index で前面に固定する。
-    */
     #collect-btn {
       position: fixed;
       bottom: 20px;
@@ -137,8 +133,7 @@
       font-size: 18px;
       font-weight: bold;
       display: none;
-      z-index: 99999 !important;
-      pointer-events: auto;
+      z-index: 1000;
     }
 
     #collection-link {
@@ -150,8 +145,7 @@
       padding: 10px;
       text-decoration: none;
       border-radius: 5px;
-      z-index: 99999 !important;
-      pointer-events: auto;
+      z-index: 1000;
     }
 
     #back-link {
@@ -163,8 +157,7 @@
       padding: 10px;
       text-decoration: none;
       border-radius: 5px;
-      z-index: 99999 !important;
-      pointer-events: auto;
+      z-index: 1000;
     }
 
     #model-loading-indicator {
@@ -177,44 +170,9 @@
       padding: 16px 20px;
       border-radius: 15px;
       display: none;
-      z-index: 99999 !important;
+      z-index: 2000;
       font-size: 14px;
       font-weight: bold;
-      pointer-events: none;
-    }
-
-    #zoom-controls {
-      position: fixed;
-      right: 10px;
-      bottom: 20px;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      z-index: 99999 !important;
-      pointer-events: auto;
-    }
-
-    #zoom-controls button {
-      padding: 10px 14px;
-      border: none;
-      border-radius: 8px;
-      background: rgba(0,0,0,0.75);
-      color: white;
-      font-size: 14px;
-      font-weight: bold;
-    }
-
-    #zoom-status {
-      position: fixed;
-      right: 10px;
-      bottom: 150px;
-      background: rgba(0,0,0,0.75);
-      color: white;
-      padding: 8px 10px;
-      border-radius: 8px;
-      font-size: 12px;
-      z-index: 99999 !important;
-      pointer-events: none;
     }
   </style>
 </head>
@@ -227,18 +185,10 @@
 
   <div id="model-loading-indicator">モデルを表示中...</div>
 
-  <div id="zoom-status">倍率：標準</div>
-
-  <div id="zoom-controls">
-    <button onclick="setARZoom(0.75, '広く')">広く</button>
-    <button onclick="setARZoom(1.0, '標準')">標準</button>
-    <button onclick="setARZoom(1.25, '拡大')">拡大</button>
-  </div>
-
   <a-scene
     embedded
     vr-mode-ui="enabled: false"
-    arjs="sourceType: webcam; debugUIEnabled: false; sourceWidth: 1280; sourceHeight: 720; displayWidth: 1280; displayHeight: 720;"
+    arjs="sourceType: webcam; debugUIEnabled: false;"
     renderer="colorManagement: true; exposure: 1.2;"
     gltf-model="dracoDecoderPath: https://www.gstatic.com/draco/versioned/decoders/1.5.6/;"
   >
@@ -383,113 +333,6 @@
       setupMarkerEvents();
       setupModelLoadingEvents();
       setupCollectButton();
-    });
-  </script>
-
-  <script>
-    let arZoom = 1.0;
-    let arZoomLabel = "標準";
-
-    function setARZoom(value, label) {
-      arZoom = value;
-      arZoomLabel = label;
-
-      localStorage.setItem("ar_zoom", String(value));
-      localStorage.setItem("ar_zoom_label", label);
-
-      applyARZoom();
-      updateZoomStatus();
-    }
-
-    function updateZoomStatus() {
-      const zoomStatus = document.getElementById("zoom-status");
-      if (!zoomStatus) return;
-
-      zoomStatus.innerText = `倍率：${arZoomLabel}`;
-    }
-
-    function applyARZoom() {
-      const video = document.querySelector("video");
-      const canvas = document.querySelector("canvas");
-      const scene = document.querySelector("a-scene");
-
-      if (scene) {
-        scene.style.position = "fixed";
-        scene.style.top = "0";
-        scene.style.left = "0";
-        scene.style.width = "100vw";
-        scene.style.height = "100vh";
-        scene.style.zIndex = "0";
-        scene.style.pointerEvents = "none";
-      }
-
-      [video, canvas].forEach((el) => {
-        if (!el) return;
-
-        el.style.position = "fixed";
-        el.style.top = "50%";
-        el.style.left = "50%";
-        el.style.width = "100vw";
-        el.style.height = "100vh";
-        el.style.transformOrigin = "center center";
-        el.style.transform = `translate(-50%, -50%) scale(${arZoom})`;
-        el.style.zIndex = "0";
-        el.style.pointerEvents = "none";
-      });
-
-      const controls = document.getElementById("zoom-controls");
-      const status = document.getElementById("zoom-status");
-      const collectBtn = document.getElementById("collect-btn");
-      const backLink = document.getElementById("back-link");
-      const collectionLink = document.getElementById("collection-link");
-      const indicator = document.getElementById("model-loading-indicator");
-
-      [controls, status, collectBtn, backLink, collectionLink, indicator].forEach((el) => {
-        if (!el) return;
-        el.style.zIndex = "99999";
-      });
-
-      if (controls) {
-        controls.style.pointerEvents = "auto";
-      }
-
-      if (collectBtn) {
-        collectBtn.style.pointerEvents = "auto";
-      }
-
-      if (backLink) {
-        backLink.style.pointerEvents = "auto";
-      }
-
-      if (collectionLink) {
-        collectionLink.style.pointerEvents = "auto";
-      }
-    }
-
-    window.addEventListener("load", () => {
-      const savedZoom = localStorage.getItem("ar_zoom");
-      const savedLabel = localStorage.getItem("ar_zoom_label");
-
-      if (savedZoom) {
-        arZoom = Number(savedZoom);
-      }
-
-      if (savedLabel) {
-        arZoomLabel = savedLabel;
-      }
-
-      updateZoomStatus();
-
-      setTimeout(applyARZoom, 500);
-      setTimeout(applyARZoom, 1500);
-      setTimeout(applyARZoom, 3000);
-    });
-
-    setInterval(applyARZoom, 1000);
-
-    window.addEventListener("resize", applyARZoom);
-    window.addEventListener("orientationchange", () => {
-      setTimeout(applyARZoom, 500);
     });
   </script>
 </body>

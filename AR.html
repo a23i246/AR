@@ -129,11 +129,7 @@
       width: 100vw !important;
       height: 100vh !important;
       background: transparent !important;
-    }
-
-    canvas,
-    .a-canvas {
-      background: transparent !important;
+      z-index: 1;
     }
 
     video {
@@ -144,21 +140,19 @@
       height: 100vh !important;
       object-fit: contain !important;
       background: black !important;
+      z-index: 0 !important;
     }
 
-    #collect-btn {
-      position: fixed;
-      bottom: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      padding: 15px 30px;
-      background-color: #ff5722;
-      color: white;
-      border: none;
-      border-radius: 25px;
-      font-size: 18px;
-      font-weight: bold;
-      display: none;
+    canvas,
+    .a-canvas {
+      background: transparent !important;
+      z-index: 1 !important;
+    }
+
+    #collect-btn,
+    #collection-link,
+    #back-link,
+    #model-loading-indicator {
       z-index: 1000;
     }
 
@@ -215,7 +209,7 @@
       embedded
       vr-mode-ui="enabled: false"
       arjs="sourceType: webcam; debugUIEnabled: false;"
-      renderer="alpha: true; colorManagement: true; exposure: 1.2;"
+      renderer="alpha: true; antialias: true; colorManagement: true; exposure: 1.2;"
       gltf-model="dracoDecoderPath: https://www.gstatic.com/draco/versioned/decoders/1.5.6/;"
     >
     <a-assets>
@@ -364,32 +358,49 @@
     });
   </script>
   <script>
-  function fixCameraVideoStyle() {
-    const video = document.querySelector("video");
+    function fixCameraLayers() {
+      const video = document.querySelector("video");
+      const canvas = document.querySelector("canvas");
+      const scene = document.querySelector("a-scene");
 
-    if (!video) return;
+      if (video) {
+        video.style.position = "fixed";
+        video.style.top = "0";
+        video.style.left = "0";
+        video.style.width = "100vw";
+        video.style.height = "100vh";
+        video.style.objectFit = "contain";
+        video.style.background = "black";
+        video.style.zIndex = "0";
+      }
 
-    video.style.position = "fixed";
-    video.style.top = "0";
-    video.style.left = "0";
-    video.style.width = "100vw";
-    video.style.height = "100vh";
-    video.style.objectFit = "contain";
-    video.style.background = "black";
-  }
+      if (canvas) {
+        canvas.style.background = "transparent";
+        canvas.style.zIndex = "1";
+      }
 
-  const cameraStyleTimer = setInterval(fixCameraVideoStyle, 500);
+      if (scene && scene.renderer) {
+        try {
+          scene.renderer.setClearColor(0x000000, 0);
+          scene.renderer.setClearAlpha(0);
+        } catch (e) {
+          console.warn("renderer透明化に失敗:", e);
+        }
+      }
+    }
 
-  window.addEventListener("resize", fixCameraVideoStyle);
-  window.addEventListener("orientationchange", () => {
-    setTimeout(fixCameraVideoStyle, 500);
-  });
+    window.addEventListener("load", () => {
+      setTimeout(fixCameraLayers, 500);
+      setTimeout(fixCameraLayers, 1500);
+      setTimeout(fixCameraLayers, 3000);
+    });
 
-  window.addEventListener("load", () => {
-    setTimeout(fixCameraVideoStyle, 500);
-    setTimeout(fixCameraVideoStyle, 1500);
-    setTimeout(fixCameraVideoStyle, 3000);
-  });
-</script>
-</body>
+    setInterval(fixCameraLayers, 1000);
+
+    window.addEventListener("resize", fixCameraLayers);
+    window.addEventListener("orientationchange", () => {
+      setTimeout(fixCameraLayers, 500);
+    });
+  </script>
+  </body>
 </html>

@@ -122,37 +122,58 @@
       font-family: sans-serif;
     }
 
-    a-scene {
-      position: fixed;
-      top: 0;
-      left: 0;
+    /*
+      AR.js が作る video を画面中央に固定する。
+      左端だけに出る問題を避けるため、left:50% + translate で中央寄せする。
+    */
+    video {
+      position: fixed !important;
+      top: 50% !important;
+      left: 50% !important;
+      transform: translate(-50%, -50%) !important;
+
       width: 100vw !important;
       height: 100vh !important;
-      background: transparent !important;
-      z-index: 1;
+
+      object-fit: cover !important;
+      background: black !important;
+      z-index: 0 !important;
     }
 
-    video {
+    a-scene {
       position: fixed !important;
       top: 0 !important;
       left: 0 !important;
       width: 100vw !important;
       height: 100vh !important;
-      object-fit: contain !important;
-      background: black !important;
-      z-index: 0 !important;
-    }
-
-    canvas,
-    .a-canvas {
       background: transparent !important;
       z-index: 1 !important;
     }
 
-    #collect-btn,
-    #collection-link,
-    #back-link,
-    #model-loading-indicator {
+    canvas,
+    .a-canvas {
+      position: fixed !important;
+      top: 0 !important;
+      left: 0 !important;
+      width: 100vw !important;
+      height: 100vh !important;
+      background: transparent !important;
+      z-index: 1 !important;
+    }
+
+    #collect-btn {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 15px 30px;
+      background-color: #ff5722;
+      color: white;
+      border: none;
+      border-radius: 25px;
+      font-size: 18px;
+      font-weight: bold;
+      display: none;
       z-index: 1000;
     }
 
@@ -365,16 +386,22 @@
 
       if (video) {
         video.style.position = "fixed";
-        video.style.top = "0";
-        video.style.left = "0";
+        video.style.top = "50%";
+        video.style.left = "50%";
+        video.style.transform = "translate(-50%, -50%)";
         video.style.width = "100vw";
         video.style.height = "100vh";
-        video.style.objectFit = "contain";
+        video.style.objectFit = "cover";
         video.style.background = "black";
         video.style.zIndex = "0";
       }
 
       if (canvas) {
+        canvas.style.position = "fixed";
+        canvas.style.top = "0";
+        canvas.style.left = "0";
+        canvas.style.width = "100vw";
+        canvas.style.height = "100vh";
         canvas.style.background = "transparent";
         canvas.style.zIndex = "1";
       }

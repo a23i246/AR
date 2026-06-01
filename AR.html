@@ -48,17 +48,19 @@
 
   <script>
     AFRAME.registerComponent('swipe-rotate', {
-      schema: { speed: { default: 0.5 } },
+      schema: {
+        speed: { default: 0.35 }
+      },
 
       init: function () {
         this.touchStartX = 0;
-        this.touchStartY = 0;
         this.isDragging = false;
 
         window.addEventListener('touchstart', (e) => {
+          if (e.touches.length !== 1) return;
+
           this.isDragging = true;
           this.touchStartX = e.touches[0].clientX;
-          this.touchStartY = e.touches[0].clientY;
         });
 
         window.addEventListener('touchend', () => {
@@ -67,21 +69,19 @@
 
         window.addEventListener('touchmove', (e) => {
           if (!this.isDragging) return;
+          if (e.touches.length !== 1) return;
 
           const currentX = e.touches[0].clientX;
-          const currentY = e.touches[0].clientY;
           const deltaX = currentX - this.touchStartX;
-          const deltaY = currentY - this.touchStartY;
           const rotation = this.el.getAttribute('rotation');
 
           this.el.setAttribute('rotation', {
-            x: rotation.x - deltaY * this.data.speed,
+            x: 0,
             y: rotation.y + deltaX * this.data.speed,
-            z: rotation.z
+            z: 0
           });
 
           this.touchStartX = currentX;
-          this.touchStartY = currentY;
         });
       }
     });
@@ -187,7 +187,7 @@
 
   <a-scene
     embedded
-    arjs
+    arjs="sourceType: webcam; debugUIEnabled: false;"
     renderer="colorManagement: true; exposure: 1.2;"
     gltf-model="dracoDecoderPath: https://www.gstatic.com/draco/versioned/decoders/1.5.6/;"
   >

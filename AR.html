@@ -120,6 +120,10 @@
       font-family: sans-serif;
     }
 
+    /*
+      AR.js / A-Frame の canvas がボタンの上にかぶさることがあるため、
+      操作用UIはかなり大きい z-index で前面に固定する。
+    */
     #collect-btn {
       position: fixed;
       bottom: 20px;
@@ -133,7 +137,8 @@
       font-size: 18px;
       font-weight: bold;
       display: none;
-      z-index: 1000;
+      z-index: 99999 !important;
+      pointer-events: auto;
     }
 
     #collection-link {
@@ -145,7 +150,8 @@
       padding: 10px;
       text-decoration: none;
       border-radius: 5px;
-      z-index: 1000;
+      z-index: 99999 !important;
+      pointer-events: auto;
     }
 
     #back-link {
@@ -157,7 +163,8 @@
       padding: 10px;
       text-decoration: none;
       border-radius: 5px;
-      z-index: 1000;
+      z-index: 99999 !important;
+      pointer-events: auto;
     }
 
     #model-loading-indicator {
@@ -170,9 +177,10 @@
       padding: 16px 20px;
       border-radius: 15px;
       display: none;
-      z-index: 2000;
+      z-index: 99999 !important;
       font-size: 14px;
       font-weight: bold;
+      pointer-events: none;
     }
 
     #zoom-controls {
@@ -182,14 +190,15 @@
       display: flex;
       flex-direction: column;
       gap: 8px;
-      z-index: 3000;
+      z-index: 99999 !important;
+      pointer-events: auto;
     }
 
     #zoom-controls button {
       padding: 10px 14px;
       border: none;
       border-radius: 8px;
-      background: rgba(0,0,0,0.65);
+      background: rgba(0,0,0,0.75);
       color: white;
       font-size: 14px;
       font-weight: bold;
@@ -199,12 +208,13 @@
       position: fixed;
       right: 10px;
       bottom: 150px;
-      background: rgba(0,0,0,0.65);
+      background: rgba(0,0,0,0.75);
       color: white;
       padding: 8px 10px;
       border-radius: 8px;
       font-size: 12px;
-      z-index: 3000;
+      z-index: 99999 !important;
+      pointer-events: none;
     }
   </style>
 </head>
@@ -401,6 +411,17 @@
     function applyARZoom() {
       const video = document.querySelector("video");
       const canvas = document.querySelector("canvas");
+      const scene = document.querySelector("a-scene");
+
+      if (scene) {
+        scene.style.position = "fixed";
+        scene.style.top = "0";
+        scene.style.left = "0";
+        scene.style.width = "100vw";
+        scene.style.height = "100vh";
+        scene.style.zIndex = "0";
+        scene.style.pointerEvents = "none";
+      }
 
       [video, canvas].forEach((el) => {
         if (!el) return;
@@ -412,7 +433,37 @@
         el.style.height = "100vh";
         el.style.transformOrigin = "center center";
         el.style.transform = `translate(-50%, -50%) scale(${arZoom})`;
+        el.style.zIndex = "0";
+        el.style.pointerEvents = "none";
       });
+
+      const controls = document.getElementById("zoom-controls");
+      const status = document.getElementById("zoom-status");
+      const collectBtn = document.getElementById("collect-btn");
+      const backLink = document.getElementById("back-link");
+      const collectionLink = document.getElementById("collection-link");
+      const indicator = document.getElementById("model-loading-indicator");
+
+      [controls, status, collectBtn, backLink, collectionLink, indicator].forEach((el) => {
+        if (!el) return;
+        el.style.zIndex = "99999";
+      });
+
+      if (controls) {
+        controls.style.pointerEvents = "auto";
+      }
+
+      if (collectBtn) {
+        collectBtn.style.pointerEvents = "auto";
+      }
+
+      if (backLink) {
+        backLink.style.pointerEvents = "auto";
+      }
+
+      if (collectionLink) {
+        collectionLink.style.pointerEvents = "auto";
+      }
     }
 
     window.addEventListener("load", () => {

@@ -560,9 +560,18 @@
       };
 
       Object.assign(video.style, commonStyle);
-      video.style.zIndex = "0";
-      video.style.background = "black";
-
+      video.style.setProperty("position", "fixed", "important");
+      video.style.setProperty("left", `${left}px`, "important");
+      video.style.setProperty("top", `${top}px`, "important");
+      video.style.setProperty("width", `${displayW}px`, "important");
+      video.style.setProperty("height", `${displayH}px`, "important");
+      video.style.setProperty("max-width", "none", "important");
+      video.style.setProperty("max-height", "none", "important");
+      video.style.setProperty("transform", "none", "important");
+      video.style.setProperty("object-fit", "contain", "important");
+      video.style.setProperty("z-index", "0", "important");
+      video.style.setProperty("background", "black", "important");
+      
       if (canvas) {
         Object.assign(canvas.style, commonStyle);
         canvas.style.zIndex = "1";
@@ -573,13 +582,22 @@
         canvas.height = Math.round(displayH * dpr);
       }
 
-      if (scene) {
-        scene.style.position = "fixed";
-        scene.style.left = "0";
-        scene.style.top = "0";
-        scene.style.width = `${cssW}px`;
-        scene.style.height = `${cssH}px`;
-      }
+      if (canvas) {
+        Object.assign(canvas.style, commonStyle);
+        canvas.style.setProperty("position", "fixed", "important");
+        canvas.style.setProperty("left", `${left}px`, "important");
+        canvas.style.setProperty("top", `${top}px`, "important");
+        canvas.style.setProperty("width", `${displayW}px`, "important");
+        canvas.style.setProperty("height", `${displayH}px`, "important");
+        canvas.style.setProperty("max-width", "none", "important");
+        canvas.style.setProperty("max-height", "none", "important");
+        canvas.style.setProperty("transform", "none", "important");
+        canvas.style.setProperty("z-index", "1", "important");
+
+        const dpr = window.devicePixelRatio || 1;
+        canvas.width = Math.round(displayW * dpr);
+        canvas.height = Math.round(displayH * dpr);
+      }    
     }
 
     function startCameraFix() {

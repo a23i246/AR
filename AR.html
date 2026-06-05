@@ -333,7 +333,7 @@
     <a-scene
       embedded
       vr-mode-ui="enabled: false"
-      arjs="sourceType: webcam; debugUIEnabled: false; sourceWidth: 480; sourceHeight: 640; displayWidth: 360; displayHeight: 480;"
+      arjs="sourceType: webcam; debugUIEnabled: false; sourceWidth: 640; sourceHeight: 480; displayWidth: 360; displayHeight: 270;"      
       renderer="colorManagement: true; exposure: 1.2;"
       gltf-model="dracoDecoderPath: https://www.gstatic.com/draco/versioned/decoders/1.5.6/;"
     >
@@ -525,9 +525,12 @@
       const cssW = document.documentElement.clientWidth || window.innerWidth;
       const cssH = document.documentElement.clientHeight || window.innerHeight;
 
-      const targetW = cssW;
-      const targetH = Math.round(cssW * 640 / 480);
+      const realW = video.videoWidth || 640;
+      const realH = video.videoHeight || 480;
 
+      const targetW = cssW;
+      const targetH = Math.round(cssW * realH / realW);
+      
       const left = 0;
       const top = Math.round((cssH - targetH) / 2);
 

@@ -58,7 +58,6 @@
 
         window.addEventListener('touchstart', (e) => {
           if (e.touches.length !== 1) return;
-
           this.isDragging = true;
           this.touchStartX = e.touches[0].clientX;
         });
@@ -113,11 +112,15 @@
   </script>
 
   <style>
+    html,
     body {
       margin: 0;
+      padding: 0;
       overflow: hidden;
       background: black;
       font-family: sans-serif;
+      width: 100%;
+      height: 100%;
     }
 
     #start-screen {
@@ -130,7 +133,7 @@
       display: flex;
       justify-content: center;
       align-items: center;
-      z-index: 99999;
+      z-index: 2147483647 !important;
       transition: opacity 0.4s ease;
     }
 
@@ -215,31 +218,34 @@
       font-size: 18px;
       font-weight: bold;
       display: none;
-      z-index: 1000;
+      z-index: 2147483647 !important;
+      pointer-events: auto !important;
     }
 
     #collection-link {
       position: fixed;
       top: 10px;
       right: 10px;
-      background: rgba(0,0,0,0.5);
+      background: rgba(0,0,0,0.65);
       color: white;
       padding: 10px;
       text-decoration: none;
       border-radius: 5px;
-      z-index: 1000;
+      z-index: 2147483647 !important;
+      pointer-events: auto !important;
     }
 
     #back-link {
       position: fixed;
       top: 10px;
       left: 10px;
-      background: rgba(0,0,0,0.5);
+      background: rgba(0,0,0,0.65);
       color: white;
       padding: 10px;
       text-decoration: none;
       border-radius: 5px;
-      z-index: 1000;
+      z-index: 2147483647 !important;
+      pointer-events: auto !important;
     }
 
     #model-loading-indicator {
@@ -252,26 +258,28 @@
       padding: 16px 20px;
       border-radius: 15px;
       display: none;
-      z-index: 2000;
+      z-index: 2147483647 !important;
       font-size: 14px;
       font-weight: bold;
+      pointer-events: none;
     }
 
     #camera-debug {
       position: fixed;
       left: 8px;
-      bottom: 8px;
-      background: rgba(0,0,0,0.7);
+      top: 70px;
+      background: rgba(0,0,0,0.75);
       color: #00ff99;
       padding: 8px 10px;
       border-radius: 8px;
       font-size: 11px;
       line-height: 1.4;
-      z-index: 3000;
+      z-index: 2147483647 !important;
       text-align: left;
-      max-width: 260px;
+      max-width: 300px;
       display: none;
       white-space: pre-line;
+      pointer-events: none;
     }
   </style>
 </head>
@@ -387,6 +395,7 @@
     };
 
     let currentMarkerId = "";
+    let cameraDebugTimer = null;
 
     const modelNameEl = document.getElementById("model-name");
     const progressBarEl = document.getElementById("progress-bar");
@@ -456,18 +465,39 @@
       const arContainer = document.getElementById("ar-container");
       const template = document.getElementById("ar-template");
 
-      arContainer.appendChild(template.content.cloneNode(true));
+      if (!arContainer.querySelector("a-scene")) {
+        arContainer.appendChild(template.content.cloneNode(true));
+      }
 
       setupMarkerEvents();
       setupModelLoadingEvents();
       setupCollectButton();
       startCameraDebug();
 
+      forceUIFront();
+
       startScreen.style.opacity = "0";
 
       setTimeout(() => {
         startScreen.style.display = "none";
+        forceUIFront();
       }, 400);
+    }
+
+    function forceUIFront() {
+      const ids = [
+        "collect-btn",
+        "collection-link",
+        "back-link",
+        "model-loading-indicator",
+        "camera-debug"
+      ];
+
+      ids.forEach((id) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.style.zIndex = "2147483647";
+      });
     }
 
     function setupMarkerEvents() {
@@ -479,6 +509,7 @@
           currentMarkerId = marker.id;
           collectBtn.style.display = "block";
           console.log("マーカー認識:", marker.id);
+          forceUIFront();
         });
 
         marker.addEventListener("markerLost", () => {
@@ -488,6 +519,7 @@
 
           collectBtn.style.display = "none";
           console.log("マーカー解除:", marker.id);
+          forceUIFront();
         });
       });
     }
@@ -518,12 +550,14 @@
         modelEl.addEventListener("model-loaded", () => {
           console.log(`${item.name} モデル読み込み完了`);
           indicator.style.display = "none";
+          forceUIFront();
         });
 
         modelEl.addEventListener("model-error", () => {
           console.error(`${item.name} モデル読み込み失敗`);
           indicator.innerText = `${item.name} の表示に失敗しました`;
           indicator.style.display = "block";
+          forceUIFront();
 
           setTimeout(() => {
             indicator.style.display = "none";
@@ -571,8 +605,13 @@
     function startCameraDebug() {
       const debugEl = document.getElementById("camera-debug");
       debugEl.style.display = "block";
+      forceUIFront();
 
-      setInterval(() => {
+      if (cameraDebugTimer) {
+        clearInterval(cameraDebugTimer);
+      }
+
+      cameraDebugTimer = setInterval(() => {
         const video = document.querySelector("video");
         const canvas = document.querySelector("canvas");
 
@@ -583,6 +622,7 @@
           debugEl.innerText =
             `画面: ${screenW} x ${screenH}\n` +
             `video: まだ生成されていません`;
+          forceUIFront();
           return;
         }
 
@@ -602,6 +642,8 @@
           `video表示: ${videoDisplayW} x ${videoDisplayH}\n` +
           `video実サイズ: ${videoRealW} x ${videoRealH} / 比率 ${realRatio}\n` +
           `canvas: ${canvas ? canvas.width + " x " + canvas.height : "なし"}`;
+
+        forceUIFront();
       }, 1000);
     }
 

@@ -285,13 +285,6 @@
     video,
     #arjs-video {
       position: fixed !important;
-      left: 50% !important;
-      top: 50% !important;
-      transform: translate(-50%, -50%) !important;
-      width: 100vw !important;
-      height: auto !important;
-      max-width: none !important;
-      max-height: none !important;
       object-fit: contain !important;
       z-index: 0 !important;
       background: black !important;
@@ -300,15 +293,8 @@
     canvas,
     .a-canvas {
       position: fixed !important;
-      left: 50% !important;
-      top: 50% !important;
-      transform: translate(-50%, -50%) !important;
-      width: 100vw !important;
-      height: auto !important;
-      max-width: none !important;
-      max-height: none !important;
       z-index: 1 !important;
-    }
+    }  
   </style>
 </head>
 
@@ -533,43 +519,43 @@
     function fixCameraView() {
       const video = document.querySelector("video");
       const canvas = document.querySelector("canvas");
-
-      const screenW = window.innerWidth;
-      const screenH = window.innerHeight;
+      const scene = document.querySelector("a-scene");
 
       if (!video) return;
+
+      const cssW = document.documentElement.clientWidth;
+      const cssH = document.documentElement.clientHeight;
 
       const realW = video.videoWidth || 480;
       const realH = video.videoHeight || 640;
 
-      const screenRatio = screenW / screenH;
+      const screenRatio = cssW / cssH;
       const videoRatio = realW / realH;
 
       let displayW;
       let displayH;
 
-      /*
-        contain表示にする。
-        画面いっぱいに無理やり拡大せず、
-        カメラ映像の比率を保ったまま画面内に収める。
-      */
+      // カメラ映像を画面内に収める contain 表示
       if (screenRatio > videoRatio) {
-        displayH = screenH;
+        displayH = cssH;
         displayW = displayH * videoRatio;
       } else {
-        displayW = screenW;
+        displayW = cssW;
         displayH = displayW / videoRatio;
       }
 
+      const left = (cssW - displayW) / 2;
+      const top = (cssH - displayH) / 2;
+
       const commonStyle = {
         position: "fixed",
-        left: "50%",
-        top: "50%",
+        left: `${left}px`,
+        top: `${top}px`,
         width: `${displayW}px`,
         height: `${displayH}px`,
         maxWidth: "none",
         maxHeight: "none",
-        transform: "translate(-50%, -50%)",
+        transform: "none",
         objectFit: "contain"
       };
 
@@ -580,6 +566,19 @@
       if (canvas) {
         Object.assign(canvas.style, commonStyle);
         canvas.style.zIndex = "1";
+
+        // canvasの内部解像度も表示サイズに寄せる
+        const dpr = window.devicePixelRatio || 1;
+        canvas.width = Math.round(displayW * dpr);
+        canvas.height = Math.round(displayH * dpr);
+      }
+
+      if (scene) {
+        scene.style.position = "fixed";
+        scene.style.left = "0";
+        scene.style.top = "0";
+        scene.style.width = `${cssW}px`;
+        scene.style.height = `${cssH}px`;
       }
     }
 

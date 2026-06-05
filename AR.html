@@ -519,7 +519,6 @@
     function fixCameraView() {
       const video = document.querySelector("video");
       const canvas = document.querySelector("canvas");
-      const scene = document.querySelector("a-scene");
 
       if (!video) return;
 
@@ -535,7 +534,7 @@
       let displayW;
       let displayH;
 
-      // カメラ映像を画面内に収める contain 表示
+      // カメラ映像を拡大クロップせず、画面内に収める
       if (screenRatio > videoRatio) {
         displayH = cssH;
         displayW = displayH * videoRatio;
@@ -547,57 +546,33 @@
       const left = (cssW - displayW) / 2;
       const top = (cssH - displayH) / 2;
 
-      const commonStyle = {
-        position: "fixed",
-        left: `${left}px`,
-        top: `${top}px`,
-        width: `${displayW}px`,
-        height: `${displayH}px`,
-        maxWidth: "none",
-        maxHeight: "none",
-        transform: "none",
-        objectFit: "contain"
-      };
+      // videoとcanvasに同じ表示サイズを強制する
+      const targets = [video, canvas].filter(Boolean);
 
-      Object.assign(video.style, commonStyle);
-      video.style.setProperty("position", "fixed", "important");
-      video.style.setProperty("left", `${left}px`, "important");
-      video.style.setProperty("top", `${top}px`, "important");
-      video.style.setProperty("width", `${displayW}px`, "important");
-      video.style.setProperty("height", `${displayH}px`, "important");
-      video.style.setProperty("max-width", "none", "important");
-      video.style.setProperty("max-height", "none", "important");
-      video.style.setProperty("transform", "none", "important");
-      video.style.setProperty("object-fit", "contain", "important");
-      video.style.setProperty("z-index", "0", "important");
+      targets.forEach((el, index) => {
+        el.style.setProperty("position", "fixed", "important");
+        el.style.setProperty("left", `${left}px`, "important");
+        el.style.setProperty("top", `${top}px`, "important");
+        el.style.setProperty("width", `${displayW}px`, "important");
+        el.style.setProperty("height", `${displayH}px`, "important");
+        el.style.setProperty("max-width", "none", "important");
+        el.style.setProperty("max-height", "none", "important");
+        el.style.setProperty("min-width", "0", "important");
+        el.style.setProperty("min-height", "0", "important");
+        el.style.setProperty("transform", "none", "important");
+        el.style.setProperty("object-fit", "contain", "important");
+        el.style.setProperty("margin", "0", "important");
+        el.style.setProperty("padding", "0", "important");
+        el.style.setProperty("z-index", index === 0 ? "0" : "1", "important");
+      });
+
       video.style.setProperty("background", "black", "important");
-      
-      if (canvas) {
-        Object.assign(canvas.style, commonStyle);
-        canvas.style.zIndex = "1";
 
-        // canvasの内部解像度も表示サイズに寄せる
+      if (canvas) {
         const dpr = window.devicePixelRatio || 1;
         canvas.width = Math.round(displayW * dpr);
         canvas.height = Math.round(displayH * dpr);
       }
-
-      if (canvas) {
-        Object.assign(canvas.style, commonStyle);
-        canvas.style.setProperty("position", "fixed", "important");
-        canvas.style.setProperty("left", `${left}px`, "important");
-        canvas.style.setProperty("top", `${top}px`, "important");
-        canvas.style.setProperty("width", `${displayW}px`, "important");
-        canvas.style.setProperty("height", `${displayH}px`, "important");
-        canvas.style.setProperty("max-width", "none", "important");
-        canvas.style.setProperty("max-height", "none", "important");
-        canvas.style.setProperty("transform", "none", "important");
-        canvas.style.setProperty("z-index", "1", "important");
-
-        const dpr = window.devicePixelRatio || 1;
-        canvas.width = Math.round(displayW * dpr);
-        canvas.height = Math.round(displayH * dpr);
-      }    
     }
 
     function startCameraFix() {
@@ -608,9 +583,9 @@
       cameraFixTimer = setInterval(() => {
         fixCameraView();
         forceUIFront();
-      }, 300);
+      }, 100);
     }
-
+    
     function setupMarkerEvents() {
       const collectBtn = document.getElementById("collect-btn");
       const markers = document.querySelectorAll("a-marker");

@@ -1,721 +1,368 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="utf-8">
-  <title>AR恐竜図鑑 カメラ</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>AR恐竜コレクション</title>
 
   <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
   <script src="https://unpkg.com/@ar-js-org/ar.js@3.4.5/aframe/build/aframe-ar.js"></script>
 
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-    import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-
-    const firebaseConfig = {
-      apiKey: "AIzaSyB6sOyrSwjY7fZaPEGDvn0iormTPWhjQsY",
-      authDomain: "ar-stamp-6d9ed.firebaseapp.com",
-      projectId: "ar-stamp-6d9ed",
-      storageBucket: "ar-stamp-6d9ed.firebasestorage.app",
-      messagingSenderId: "238550666098",
-      appId: "1:238550666098:web:8c161928290c093bf8abeb",
-      measurementId: "G-44D1V7P76C"
-    };
-
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
-    const auth = getAuth(app);
-
-    let uid = "";
-
-    signInAnonymously(auth).catch((error) => {
-      console.error("ログインエラー:", error);
-    });
-
-    onAuthStateChanged(auth, (user) => {
-      if (user) {
-        uid = user.uid;
-        console.log("Firebaseログイン完了:", uid);
-      }
-    });
-
-    window.db = db;
-    window.getUid = () => uid;
-    window.setDocRef = setDoc;
-    window.docRef = doc;
-  </script>
-
-  <script>
-    AFRAME.registerComponent('swipe-rotate', {
-      schema: {
-        speed: { default: 0.35 }
-      },
-
-      init: function () {
-        this.touchStartX = 0;
-        this.isDragging = false;
-
-        window.addEventListener('touchstart', (e) => {
-          if (e.touches.length !== 1) return;
-          this.isDragging = true;
-          this.touchStartX = e.touches[0].clientX;
-        });
-
-        window.addEventListener('touchend', () => {
-          this.isDragging = false;
-        });
-
-        window.addEventListener('touchmove', (e) => {
-          if (!this.isDragging) return;
-          if (e.touches.length !== 1) return;
-
-          const currentX = e.touches[0].clientX;
-          const deltaX = currentX - this.touchStartX;
-          const rotation = this.el.getAttribute('rotation');
-
-          this.el.setAttribute('rotation', {
-            x: 0,
-            y: rotation.y + deltaX * this.data.speed,
-            z: 0
-          });
-
-          this.touchStartX = currentX;
-        });
-      }
-    });
-
-    AFRAME.registerComponent('auto-center', {
-      init: function () {
-        this.el.addEventListener('model-loaded', () => {
-          const mesh = this.el.getObject3D('mesh');
-          if (!mesh) return;
-
-          const clone = mesh.clone();
-          clone.position.set(0, 0, 0);
-          clone.rotation.set(0, 0, 0);
-          clone.scale.set(1, 1, 1);
-          clone.updateMatrixWorld(true);
-
-          const box = new THREE.Box3().setFromObject(clone);
-          const center = new THREE.Vector3();
-          box.getCenter(center);
-
-          this.el.setAttribute('position', {
-            x: -center.x,
-            y: -center.y,
-            z: -center.z
-          });
-        });
-      }
-    });
-  </script>
-
   <style>
-    html,
-    body {
+    html, body {
       margin: 0;
-      padding: 0;
-      overflow: hidden;
-      background: black;
-      font-family: sans-serif;
       width: 100%;
       height: 100%;
+      overflow: hidden;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #000;
     }
 
-    #start-screen {
+    #start-screen,
+    #collection-screen {
       position: fixed;
-      top: 0;
-      left: 0;
-      width: 100vw;
-      height: 100vh;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      inset: 0;
+      z-index: 20;
       display: flex;
-      justify-content: center;
       align-items: center;
-      z-index: 2147483647 !important;
-      transition: opacity 0.4s ease;
+      justify-content: center;
+      padding: 20px;
+      box-sizing: border-box;
+      background: linear-gradient(135deg, #667eea, #764ba2);
     }
 
-    .start-card {
-      width: 90%;
-      max-width: 500px;
-      background: white;
-      border-radius: 20px;
-      padding: 32px 24px;
-      text-align: center;
-      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-    }
-
-    .start-card h1 {
-      margin: 0 0 16px;
-      color: #333;
-      font-size: 28px;
-    }
-
-    .start-card p {
-      color: #666;
-      line-height: 1.6;
-      margin-bottom: 24px;
-    }
-
-    #model-name {
-      font-weight: bold;
-      color: #4f46e5;
-      margin-bottom: 8px;
-    }
-
-    .progress-wrap {
-      width: 100%;
-      height: 12px;
-      background: #e5e7eb;
-      border-radius: 999px;
-      overflow: hidden;
-      margin: 12px 0;
-    }
-
-    #progress-bar {
-      width: 0%;
-      height: 100%;
-      background: #4f46e5;
-      transition: width 0.2s ease;
-    }
-
-    #progress-text {
-      font-size: 14px;
-      color: #555;
-      margin-top: 8px;
-    }
-
-    #ar-button {
+    #collection-screen {
       display: none;
-      width: 100%;
-      margin-top: 24px;
-      padding: 16px 24px;
-      background: #4f46e5;
-      color: white;
-      border: none;
-      border-radius: 12px;
-      font-size: 18px;
-      font-weight: bold;
+      align-items: flex-start;
+      overflow-y: auto;
     }
 
-    #ar-container {
-      width: 100vw;
-      height: 100vh;
+    .card {
+      width: min(92vw, 520px);
+      background: #fff;
+      color: #222;
+      border-radius: 20px;
+      padding: 28px 22px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.28);
+      text-align: center;
+    }
+
+    h1 {
+      margin: 0 0 14px;
+      font-size: 26px;
+    }
+
+    p {
+      margin: 8px 0;
+      line-height: 1.6;
+      color: #555;
+    }
+
+    .spinner {
+      width: 26px;
+      height: 26px;
+      margin: 18px auto;
+      border: 4px solid #e5e7eb;
+      border-top-color: #4f46e5;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    button {
+      border: 0;
+      border-radius: 999px;
+      padding: 13px 20px;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .primary {
+      width: 100%;
+      margin-top: 18px;
+      color: #fff;
+      background: #4f46e5;
+      display: none;
+    }
+
+    .sub {
+      color: #fff;
+      background: rgba(0, 0, 0, 0.72);
+    }
+
+    #ar-ui {
+      position: fixed;
+      inset: 0;
+      z-index: 10;
+      pointer-events: none;
+    }
+
+    #message {
+      position: fixed;
+      top: 12px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: max-content;
+      max-width: calc(100vw - 24px);
+      box-sizing: border-box;
+      padding: 10px 14px;
+      border-radius: 999px;
+      color: #fff;
+      background: rgba(0, 0, 0, 0.72);
+      font-size: 14px;
+      text-align: center;
     }
 
     #collect-btn {
       position: fixed;
-      bottom: 20px;
       left: 50%;
+      bottom: 24px;
       transform: translateX(-50%);
-      padding: 15px 30px;
-      background-color: #ff5722;
-      color: white;
-      border: none;
-      border-radius: 25px;
-      font-size: 18px;
-      font-weight: bold;
+      color: #fff;
+      background: #ff5722;
       display: none;
-      z-index: 2147483647 !important;
-      pointer-events: auto !important;
+      pointer-events: auto;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
     }
 
-    #collection-link {
+    #open-collection-btn {
       position: fixed;
-      top: 10px;
-      right: 10px;
-      background: rgba(0,0,0,0.65);
-      color: white;
-      padding: 10px;
-      text-decoration: none;
-      border-radius: 5px;
-      z-index: 2147483647 !important;
-      pointer-events: auto !important;
+      right: 12px;
+      top: 12px;
+      pointer-events: auto;
     }
 
-    #back-link {
-      position: fixed;
-      top: 10px;
-      left: 10px;
-      background: rgba(0,0,0,0.65);
-      color: white;
-      padding: 10px;
-      text-decoration: none;
-      border-radius: 5px;
-      z-index: 2147483647 !important;
-      pointer-events: auto !important;
-    }
-
-    #model-loading-indicator {
-      position: fixed;
-      bottom: 85px;
-      left: 50%;
-      transform: translateX(-50%);
-      background-color: rgba(0, 0, 0, 0.8);
-      color: white;
-      padding: 16px 20px;
-      border-radius: 15px;
-      display: none;
-      z-index: 2147483647 !important;
-      font-size: 14px;
-      font-weight: bold;
-      pointer-events: none;
-    }
-
-    #camera-debug {
-      position: fixed;
-      left: 8px;
-      top: 70px;
-      background: rgba(0,0,0,0.75);
-      color: #00ff99;
-      padding: 8px 10px;
-      border-radius: 8px;
-      font-size: 11px;
-      line-height: 1.4;
-      z-index: 2147483647 !important;
+    #collection-list {
+      display: grid;
+      gap: 12px;
+      margin: 20px 0;
       text-align: left;
-      max-width: 300px;
-      display: none;
-      white-space: pre-line;
-      pointer-events: none;
     }
 
-    video,
-    #arjs-video {
-      position: fixed !important;
-      object-fit: contain !important;
-      z-index: 0 !important;
-      background: black !important;
+    .collection-item {
+      padding: 14px 16px;
+      border-radius: 14px;
+      background: #f3f4f6;
+      font-weight: 700;
     }
 
-    canvas,
-    .a-canvas {
-      position: fixed !important;
-      z-index: 1 !important;
+    .empty {
+      padding: 18px;
+      border-radius: 14px;
+      background: #f3f4f6;
+      color: #666;
+    }
+
+    .row {
+      display: flex;
+      gap: 10px;
+    }
+
+    .row button {
+      flex: 1;
     }
   </style>
+
+  <script>
+    const DINOSAURS = {
+      Protoceratops: {
+        name: "プロトケラトプス",
+        marker: "markers/pattern-stanp1.patt",
+        model: "#protoceratopsModel",
+        scale: "1 1 1"
+      },
+      Ravjaa: {
+        name: "ラウジャア",
+        marker: "markers/pattern-stanp2.patt",
+        model: "#ravjaaModel",
+        scale: "1 1 1"
+      },
+      Corythosaurus: {
+        name: "コリトサウルス",
+        marker: "markers/pattern-stanp3.patt",
+        model: "#corythosaurusModel",
+        scale: "1 1 1"
+      },
+      Zavacephale: {
+        name: "サヴァケファレ",
+        marker: "markers/pattern-stanp4.patt",
+        model: "#zavacephaleModel",
+        scale: "0.07 0.07 0.07"
+      }
+    };
+
+    const STORAGE_KEY = "ar_dinosaur_collection";
+    let activeMarkerId = null;
+
+    AFRAME.registerComponent("marker-handler", {
+      init: function () {
+        const markerId = this.el.getAttribute("data-marker-id");
+        const collectBtn = document.getElementById("collect-btn");
+        const message = document.getElementById("message");
+
+        this.el.addEventListener("markerFound", () => {
+          activeMarkerId = markerId;
+          collectBtn.style.display = "block";
+          message.textContent = `${DINOSAURS[markerId].name} を認識しました`;
+        });
+
+        this.el.addEventListener("markerLost", () => {
+          if (activeMarkerId === markerId) activeMarkerId = null;
+          collectBtn.style.display = "none";
+          message.textContent = "マーカーをカメラに映してください";
+        });
+      }
+    });
+
+    AFRAME.registerComponent("auto-center", {
+      init: function () {
+        this.el.addEventListener("model-loaded", () => {
+          const mesh = this.el.getObject3D("mesh");
+          if (!mesh) return;
+          const box = new THREE.Box3().setFromObject(mesh);
+          const center = new THREE.Vector3();
+          box.getCenter(center);
+          this.el.setAttribute("position", `${-center.x} ${-center.y} ${-center.z}`);
+        });
+      }
+    });
+
+    function getCollection() {
+      return JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+    }
+
+    function saveCollection(items) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify([...new Set(items)]));
+    }
+
+    function addActiveMarkerToCollection() {
+      if (!activeMarkerId) return;
+      const items = getCollection();
+      if (!items.includes(activeMarkerId)) items.push(activeMarkerId);
+      saveCollection(items);
+      document.getElementById("message").textContent = `${DINOSAURS[activeMarkerId].name} をコレクションに追加しました`;
+      document.getElementById("collect-btn").style.display = "none";
+    }
+
+    function renderCollection() {
+      const list = document.getElementById("collection-list");
+      const items = getCollection();
+      list.innerHTML = "";
+
+      if (items.length === 0) {
+        list.innerHTML = '<div class="empty">まだコレクションがありません。AR画面でマーカーを認識して追加してください。</div>';
+        return;
+      }
+
+      items.forEach((id) => {
+        const div = document.createElement("div");
+        div.className = "collection-item";
+        div.textContent = `✓ ${DINOSAURS[id]?.name || id}`;
+        list.appendChild(div);
+      });
+    }
+
+    window.addEventListener("DOMContentLoaded", () => {
+      const scene = document.querySelector("a-scene");
+      const startBtn = document.getElementById("start-btn");
+      const statusText = document.getElementById("status-text");
+
+      scene.addEventListener("loaded", () => {
+        statusText.textContent = "準備が完了しました";
+        document.querySelector(".spinner").style.display = "none";
+        startBtn.style.display = "block";
+      });
+
+      startBtn.addEventListener("click", () => {
+        document.getElementById("start-screen").style.display = "none";
+      });
+
+      document.getElementById("collect-btn").addEventListener("click", addActiveMarkerToCollection);
+
+      document.getElementById("open-collection-btn").addEventListener("click", () => {
+        renderCollection();
+        document.getElementById("collection-screen").style.display = "flex";
+      });
+
+      document.getElementById("close-collection-btn").addEventListener("click", () => {
+        document.getElementById("collection-screen").style.display = "none";
+      });
+
+      document.getElementById("reset-btn").addEventListener("click", () => {
+        if (!confirm("コレクションをリセットしますか？")) return;
+        localStorage.removeItem(STORAGE_KEY);
+        renderCollection();
+      });
+    });
+  </script>
 </head>
 
 <body>
   <div id="start-screen">
-    <div class="start-card">
-      <h1>恐竜ARラリー</h1>
-      <p>
-        3Dモデルを読み込んでいます。<br>
-        完了後にカメラを起動できます。
-      </p>
-
-      <div id="model-name">準備中...</div>
-
-      <div class="progress-wrap">
-        <div id="progress-bar"></div>
-      </div>
-
-      <div id="progress-text">0%</div>
-
-      <button id="ar-button">ARを開始する</button>
+    <div class="card">
+      <h1>AR恐竜コレクション</h1>
+      <p>モデルとARカメラを準備しています。</p>
+      <p>スマホではカメラ許可を求められたら許可してください。</p>
+      <div class="spinner"></div>
+      <p id="status-text">読み込み中...</p>
+      <button id="start-btn" class="primary">ARを開始する</button>
     </div>
   </div>
 
-  <div id="ar-container"></div>
-
-  <button id="collect-btn">今のをゲットする！</button>
-
-  <a id="back-link" href="index.html">戻る</a>
-  <a id="collection-link" href="collection.html">図鑑を見る</a>
-
-  <div id="model-loading-indicator">モデルを表示中...</div>
-  <div id="camera-debug">camera debug</div>
-
-  <template id="ar-template">
-    <a-scene
-      embedded
-      vr-mode-ui="enabled: false"
-      arjs="sourceType: webcam; debugUIEnabled: false; sourceWidth: 640; sourceHeight: 480; displayWidth: 360; displayHeight: 270;"      
-      renderer="colorManagement: true; exposure: 1.2;"
-      gltf-model="dracoDecoderPath: https://www.gstatic.com/draco/versioned/decoders/1.5.6/;"
-    >
-      <a-assets>
-        <a-asset-item id="Protoceratops-asset" src="models/プロトケラトプス/Protoceratops.glb"></a-asset-item>
-        <a-asset-item id="Ravjaa-asset" src="models/ラウジャア/Ravjaa.glb"></a-asset-item>
-        <a-asset-item id="Zavacephale-asset" src="models/サヴァケファレ/Zavacephale.glb"></a-asset-item>
-      </a-assets>
-
-      <a-entity light="type: ambient; color: #BBB; intensity: 1.5"></a-entity>
-      <a-entity light="type: directional; color: #FFF; intensity: 0.8" position="-1 1 1"></a-entity>
-
-      <a-marker type="pattern" url="markers/pattern-stanp1.patt" id="Protoceratops">
-        <a-entity swipe-rotate>
-          <a-entity rotation="0 0 0">
-            <a-entity
-              gltf-model="#Protoceratops-asset"
-              scale="1 1 1"
-              auto-center>
-            </a-entity>
-          </a-entity>
-        </a-entity>
-      </a-marker>
-
-      <a-marker type="pattern" url="markers/pattern-stanp2.patt" id="Ravjaa">
-        <a-entity swipe-rotate>
-          <a-entity rotation="0 0 0">
-            <a-entity
-              gltf-model="#Ravjaa-asset"
-              scale="1 1 1"
-              auto-center>
-            </a-entity>
-          </a-entity>
-        </a-entity>
-      </a-marker>
-
-      <a-marker type="pattern" url="markers/pattern-stanp4.patt" id="Zavacephale">
-        <a-entity swipe-rotate>
-          <a-entity rotation="0 0 0">
-            <a-entity
-              gltf-model="#Zavacephale-asset"
-              scale="0.07 0.07 0.07"
-              auto-center>
-            </a-entity>
-          </a-entity>
-        </a-entity>
-      </a-marker>
-
-      <a-entity camera></a-entity>
-    </a-scene>
-  </template>
-
-  <script>
-    const modelFiles = [
-      {
-        name: "プロトケラトプス",
-        url: "models/プロトケラトプス/Protoceratops.glb"
-      },
-      {
-        name: "ラウジャア",
-        url: "models/ラウジャア/Ravjaa.glb"
-      },
-      {
-        name: "サヴァケファレ",
-        url: "models/サヴァケファレ/Zavacephale.glb"
-      }
-    ];
-
-    const markerNames = {
-      Protoceratops: "プロトケラトプス",
-      Ravjaa: "ラウジャア",
-      Zavacephale: "サヴァケファレ"
-    };
-
-    let currentMarkerId = "";
-    let cameraDebugTimer = null;
-    let cameraFixTimer = null;
-
-    const modelNameEl = document.getElementById("model-name");
-    const progressBarEl = document.getElementById("progress-bar");
-    const progressTextEl = document.getElementById("progress-text");
-    const arButton = document.getElementById("ar-button");
-
-    function setProgress(percent, text) {
-      const safePercent = Math.max(0, Math.min(100, Math.round(percent)));
-      progressBarEl.style.width = `${safePercent}%`;
-      progressTextEl.innerText = text || `${safePercent}%`;
-    }
-
-    function preloadFileWithProgress(file, index, total) {
-      return new Promise((resolve) => {
-        const xhr = new XMLHttpRequest();
-
-        xhr.open("GET", file.url, true);
-        xhr.responseType = "blob";
-
-        xhr.onprogress = (event) => {
-          if (event.lengthComputable) {
-            const filePercent = event.loaded / event.total;
-            const overall = ((index + filePercent) / total) * 100;
-            modelNameEl.innerText = `${file.name} を読み込み中...`;
-            setProgress(overall, `${file.name}: ${Math.round(filePercent * 100)}%`);
-          } else {
-            const overall = (index / total) * 100;
-            modelNameEl.innerText = `${file.name} を読み込み中...`;
-            setProgress(overall, `${file.name}: 読み込み中...`);
-          }
-        };
-
-        xhr.onload = () => {
-          if (xhr.status >= 200 && xhr.status < 300) {
-            console.log("事前読み込み完了:", file.url, xhr.response.size);
-          } else {
-            console.warn("事前読み込み失敗:", file.url, xhr.status);
-          }
-
-          resolve();
-        };
-
-        xhr.onerror = () => {
-          console.warn("事前読み込みエラー:", file.url);
-          resolve();
-        };
-
-        xhr.send();
-      });
-    }
-
-    async function preloadModels() {
-      arButton.style.display = "none";
-      setProgress(0, "0%");
-
-      for (let i = 0; i < modelFiles.length; i++) {
-        await preloadFileWithProgress(modelFiles[i], i, modelFiles.length);
-      }
-
-      modelNameEl.innerText = "準備完了";
-      setProgress(100, "100%");
-      arButton.style.display = "block";
-    }
-
-    function startAR() {
-      const startScreen = document.getElementById("start-screen");
-      const arContainer = document.getElementById("ar-container");
-      const template = document.getElementById("ar-template");
-
-      if (!arContainer.querySelector("a-scene")) {
-        arContainer.appendChild(template.content.cloneNode(true));
-      }
-
-      setupMarkerEvents();
-      setupModelLoadingEvents();
-      setupCollectButton();
-      startCameraDebug();
-      startCameraFix();
-
-      forceUIFront();
-
-      startScreen.style.opacity = "0";
-
-      setTimeout(() => {
-        startScreen.style.display = "none";
-        forceUIFront();
-      }, 400);
-    }
-
-    function forceUIFront() {
-      const ids = [
-        "collect-btn",
-        "collection-link",
-        "back-link",
-        "model-loading-indicator",
-        "camera-debug"
-      ];
-
-      ids.forEach((id) => {
-        const el = document.getElementById(id);
-        if (!el) return;
-        el.style.zIndex = "2147483647";
-      });
-    }
-
-    function fixCameraView() {
-      const video = document.querySelector("video");
-      const canvas = document.querySelector("canvas");
-
-      if (!video) return;
-
-      const cssW = document.documentElement.clientWidth || window.innerWidth;
-      const cssH = document.documentElement.clientHeight || window.innerHeight;
-
-      const realW = video.videoWidth || 640;
-      const realH = video.videoHeight || 480;
-
-      const targetW = cssW;
-      const targetH = Math.round(cssW * realH / realW);
-      
-      const left = 0;
-      const top = Math.round((cssH - targetH) / 2);
-
-      const targets = [video, canvas].filter(Boolean);
-
-      targets.forEach((el, index) => {
-        el.style.setProperty("position", "fixed", "important");
-        el.style.setProperty("left", `${left}px`, "important");
-        el.style.setProperty("top", `${top}px`, "important");
-        el.style.setProperty("width", `${targetW}px`, "important");
-        el.style.setProperty("height", `${targetH}px`, "important");
-        el.style.setProperty("max-width", "none", "important");
-        el.style.setProperty("max-height", "none", "important");
-        el.style.setProperty("min-width", "0", "important");
-        el.style.setProperty("min-height", "0", "important");
-        el.style.setProperty("transform", "none", "important");
-        el.style.setProperty("object-fit", "contain", "important");
-        el.style.setProperty("margin", "0", "important");
-        el.style.setProperty("padding", "0", "important");
-        el.style.setProperty("z-index", index === 0 ? "0" : "1", "important");
-      });
-    }
-
-    function startCameraFix() {
-      if (cameraFixTimer) {
-        clearInterval(cameraFixTimer);
-      }
-
-      cameraFixTimer = setInterval(() => {
-        fixCameraView();
-        forceUIFront();
-      }, 100);
-    }
-
-    function setupMarkerEvents() {
-      const collectBtn = document.getElementById("collect-btn");
-      const markers = document.querySelectorAll("a-marker");
-
-      markers.forEach((marker) => {
-        marker.addEventListener("markerFound", () => {
-          currentMarkerId = marker.id;
-          collectBtn.style.display = "block";
-          console.log("マーカー認識:", marker.id);
-          forceUIFront();
-        });
-
-        marker.addEventListener("markerLost", () => {
-          if (currentMarkerId === marker.id) {
-            currentMarkerId = "";
-          }
-
-          collectBtn.style.display = "none";
-          console.log("マーカー解除:", marker.id);
-          forceUIFront();
-        });
-      });
-    }
-
-    function setupModelLoadingEvents() {
-      const indicator = document.getElementById("model-loading-indicator");
-
-      const models = [
-        {
-          selector: '#Protoceratops [gltf-model]',
-          name: "プロトケラトプス"
-        },
-        {
-          selector: '#Ravjaa [gltf-model]',
-          name: "ラウジャア"
-        },
-        {
-          selector: '#Zavacephale [gltf-model]',
-          name: "サヴァケファレ"
-        }
-      ];
-
-      models.forEach((item) => {
-        const modelEl = document.querySelector(item.selector);
-
-        if (!modelEl) return;
-
-        modelEl.addEventListener("model-loaded", () => {
-          console.log(`${item.name} モデル読み込み完了`);
-          indicator.style.display = "none";
-          forceUIFront();
-        });
-
-        modelEl.addEventListener("model-error", () => {
-          console.error(`${item.name} モデル読み込み失敗`);
-          indicator.innerText = `${item.name} の表示に失敗しました`;
-          indicator.style.display = "block";
-          forceUIFront();
-
-          setTimeout(() => {
-            indicator.style.display = "none";
-          }, 2000);
-        });
-      });
-    }
-
-    function setupCollectButton() {
-      const collectBtn = document.getElementById("collect-btn");
-
-      collectBtn.onclick = async () => {
-        const uid = window.getUid();
-
-        if (!uid) {
-          alert("ログイン中です。少々お待ちください。");
-          return;
-        }
-
-        if (!currentMarkerId) {
-          alert("マーカーを読み取ってください。");
-          return;
-        }
-
-        try {
-          const db = window.db;
-          const setDoc = window.setDocRef;
-          const doc = window.docRef;
-
-          await setDoc(doc(db, "users", uid, "collections", currentMarkerId), {
-            markerId: currentMarkerId,
-            timestamp: new Date()
-          });
-
-          const name = markerNames[currentMarkerId] || currentMarkerId;
-          alert(`${name} をコレクションに追加しました！`);
-          collectBtn.style.display = "none";
-        } catch (e) {
-          console.error("保存失敗:", e);
-          alert("保存に失敗しました。");
-        }
-      };
-    }
-
-    function startCameraDebug() {
-      const debugEl = document.getElementById("camera-debug");
-      debugEl.style.display = "block";
-      forceUIFront();
-
-      if (cameraDebugTimer) {
-        clearInterval(cameraDebugTimer);
-      }
-
-      cameraDebugTimer = setInterval(() => {
-        const video = document.querySelector("video");
-        const canvas = document.querySelector("canvas");
-
-        const screenW = window.innerWidth;
-        const screenH = window.innerHeight;
-
-        if (!video) {
-          debugEl.innerText =
-            `画面: ${screenW} x ${screenH}\n` +
-            `video: まだ生成されていません`;
-          forceUIFront();
-          return;
-        }
-
-        const rect = video.getBoundingClientRect();
-        const canvasRect = canvas ? canvas.getBoundingClientRect() : null;
-
-        const videoRealW = video.videoWidth || 0;
-        const videoRealH = video.videoHeight || 0;
-
-        const videoDisplayW = Math.round(rect.width);
-        const videoDisplayH = Math.round(rect.height);
-
-        const realRatio = videoRealH ? (videoRealW / videoRealH).toFixed(2) : "-";
-        const screenRatio = (screenW / screenH).toFixed(2);
-
-        debugEl.innerText =
-          `画面: ${screenW} x ${screenH} / 比率 ${screenRatio}\n` +
-          `video表示: ${videoDisplayW} x ${videoDisplayH}\n` +
-          `video実サイズ: ${videoRealW} x ${videoRealH} / 比率 ${realRatio}\n` +
-          `canvas表示: ${canvasRect ? Math.round(canvasRect.width) + " x " + Math.round(canvasRect.height) : "なし"}`;
-
-        forceUIFront();
-      }, 1000);
-    }
-
-    arButton.addEventListener("click", startAR);
-
-    preloadModels();
-  </script>
+  <div id="ar-ui">
+    <div id="message">マーカーをカメラに映してください</div>
+    <button id="open-collection-btn" class="sub">コレクション</button>
+    <button id="collect-btn">コレクションに追加</button>
+  </div>
+
+  <div id="collection-screen">
+    <div class="card">
+      <h1>コレクション</h1>
+      <div id="collection-list"></div>
+      <div class="row">
+        <button id="close-collection-btn" class="sub">ARに戻る</button>
+        <button id="reset-btn">リセット</button>
+      </div>
+    </div>
+  </div>
+
+  <a-scene
+    embedded
+    vr-mode-ui="enabled: false"
+    renderer="colorManagement: true"
+    arjs="sourceType: webcam; debugUIEnabled: false; detectionMode: mono;">
+
+    <a-assets timeout="60000">
+      <a-asset-item id="protoceratopsModel" src="models/protoceratops/Protoceratops.glb"></a-asset-item>
+      <a-asset-item id="ravjaaModel" src="models/ravjaa/Ravjaa.glb"></a-asset-item>
+      <a-asset-item id="corythosaurusModel" src="models/corythosaurus/Corythosaurus.glb"></a-asset-item>
+      <a-asset-item id="zavacephaleModel" src="models/zavacephale/Zavacephale.glb"></a-asset-item>
+    </a-assets>
+
+    <a-entity light="type: ambient; intensity: 1.4"></a-entity>
+    <a-entity light="type: directional; intensity: 0.8" position="1 2 1"></a-entity>
+
+    <a-marker type="pattern" url="markers/pattern-stanp1.patt" data-marker-id="Protoceratops" marker-handler>
+      <a-entity gltf-model="#protoceratopsModel" scale="1 1 1" rotation="0 0 0" auto-center></a-entity>
+    </a-marker>
+
+    <a-marker type="pattern" url="markers/pattern-stanp2.patt" data-marker-id="Ravjaa" marker-handler>
+      <a-entity gltf-model="#ravjaaModel" scale="1 1 1" rotation="0 0 0" auto-center></a-entity>
+    </a-marker>
+
+    <a-marker type="pattern" url="markers/pattern-stanp3.patt" data-marker-id="Corythosaurus" marker-handler>
+      <a-entity gltf-model="#corythosaurusModel" scale="1 1 1" rotation="0 0 0" auto-center></a-entity>
+    </a-marker>
+
+    <a-marker type="pattern" url="markers/pattern-stanp4.patt" data-marker-id="Zavacephale" marker-handler>
+      <a-entity gltf-model="#zavacephaleModel" scale="0.07 0.07 0.07" rotation="0 0 0" auto-center></a-entity>
+    </a-marker>
+
+    <a-entity camera></a-entity>
+  </a-scene>
 </body>
 </html>

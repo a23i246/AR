@@ -282,38 +282,31 @@
       pointer-events: none;
     }
 
-        /* カメラ映像の拡大・クロップ対策 */
     video,
     #arjs-video {
       position: fixed !important;
       left: 50% !important;
       top: 50% !important;
       transform: translate(-50%, -50%) !important;
-
       width: 100vw !important;
       height: auto !important;
-
-      max-width: 100vw !important;
-      max-height: 100vh !important;
-
+      max-width: none !important;
+      max-height: none !important;
       object-fit: contain !important;
       z-index: 0 !important;
+      background: black !important;
     }
 
-    /* AR描画canvasもカメラ映像に近い表示にする */
     canvas,
     .a-canvas {
       position: fixed !important;
       left: 50% !important;
       top: 50% !important;
       transform: translate(-50%, -50%) !important;
-
       width: 100vw !important;
       height: auto !important;
-
-      max-width: 100vw !important;
-      max-height: 100vh !important;
-
+      max-width: none !important;
+      max-height: none !important;
       z-index: 1 !important;
     }
   </style>
@@ -431,6 +424,7 @@
 
     let currentMarkerId = "";
     let cameraDebugTimer = null;
+    let cameraFixTimer = null;
 
     const modelNameEl = document.getElementById("model-name");
     const progressBarEl = document.getElementById("progress-bar");
@@ -508,6 +502,7 @@
       setupModelLoadingEvents();
       setupCollectButton();
       startCameraDebug();
+      startCameraFix();
 
       forceUIFront();
 
@@ -533,6 +528,70 @@
         if (!el) return;
         el.style.zIndex = "2147483647";
       });
+    }
+
+    function fixCameraView() {
+      const video = document.querySelector("video");
+      const canvas = document.querySelector("canvas");
+
+      const screenW = window.innerWidth;
+      const screenH = window.innerHeight;
+
+      if (!video) return;
+
+      const realW = video.videoWidth || 480;
+      const realH = video.videoHeight || 640;
+
+      const screenRatio = screenW / screenH;
+      const videoRatio = realW / realH;
+
+      let displayW;
+      let displayH;
+
+      /*
+        contain表示にする。
+        画面いっぱいに無理やり拡大せず、
+        カメラ映像の比率を保ったまま画面内に収める。
+      */
+      if (screenRatio > videoRatio) {
+        displayH = screenH;
+        displayW = displayH * videoRatio;
+      } else {
+        displayW = screenW;
+        displayH = displayW / videoRatio;
+      }
+
+      const commonStyle = {
+        position: "fixed",
+        left: "50%",
+        top: "50%",
+        width: `${displayW}px`,
+        height: `${displayH}px`,
+        maxWidth: "none",
+        maxHeight: "none",
+        transform: "translate(-50%, -50%)",
+        objectFit: "contain"
+      };
+
+      Object.assign(video.style, commonStyle);
+      video.style.zIndex = "0";
+      video.style.background = "black";
+
+      if (canvas) {
+        Object.assign(canvas.style, commonStyle);
+        canvas.style.zIndex = "1";
+      }
+    }
+
+    function startCameraFix() {
+      if (cameraFixTimer) {
+        clearInterval(cameraFixTimer);
+      }
+
+      cameraFixTimer = setInterval(() => {
+        fixCameraView();
+        forceUIFront();
+      }, 300);
     }
 
     function setupMarkerEvents() {
@@ -662,6 +721,7 @@
         }
 
         const rect = video.getBoundingClientRect();
+        const canvasRect = canvas ? canvas.getBoundingClientRect() : null;
 
         const videoRealW = video.videoWidth || 0;
         const videoRealH = video.videoHeight || 0;
@@ -676,7 +736,7 @@
           `画面: ${screenW} x ${screenH} / 比率 ${screenRatio}\n` +
           `video表示: ${videoDisplayW} x ${videoDisplayH}\n` +
           `video実サイズ: ${videoRealW} x ${videoRealH} / 比率 ${realRatio}\n` +
-          `canvas: ${canvas ? canvas.width + " x " + canvas.height : "なし"}`;
+          `canvas表示: ${canvasRect ? Math.round(canvasRect.width) + " x " + Math.round(canvasRect.height) : "なし"}`;
 
         forceUIFront();
       }, 1000);

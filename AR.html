@@ -14,18 +14,17 @@
       width: 100%;
       height: 100%;
       overflow: hidden;
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       background: #000;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     }
 
-    #start-screen,
-    #collection-screen {
+    #start-screen, #collection-screen {
       position: fixed;
       inset: 0;
-      z-index: 20;
+      z-index: 9999;
       display: flex;
-      align-items: center;
       justify-content: center;
+      align-items: center;
       padding: 20px;
       box-sizing: border-box;
       background: linear-gradient(135deg, #667eea, #764ba2);
@@ -43,34 +42,12 @@
       color: #222;
       border-radius: 20px;
       padding: 28px 22px;
-      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.28);
       text-align: center;
+      box-shadow: 0 20px 60px rgba(0,0,0,.3);
     }
 
-    h1 {
-      margin: 0 0 14px;
-      font-size: 26px;
-    }
-
-    p {
-      margin: 8px 0;
-      line-height: 1.6;
-      color: #555;
-    }
-
-    .spinner {
-      width: 26px;
-      height: 26px;
-      margin: 18px auto;
-      border: 4px solid #e5e7eb;
-      border-top-color: #4f46e5;
-      border-radius: 50%;
-      animation: spin 1s linear infinite;
-    }
-
-    @keyframes spin {
-      to { transform: rotate(360deg); }
-    }
+    h1 { margin: 0 0 14px; font-size: 26px; }
+    p { margin: 8px 0; color: #555; line-height: 1.6; }
 
     button {
       border: 0;
@@ -86,12 +63,11 @@
       margin-top: 18px;
       color: #fff;
       background: #4f46e5;
-      display: none;
     }
 
     .sub {
       color: #fff;
-      background: rgba(0, 0, 0, 0.72);
+      background: rgba(0,0,0,.72);
     }
 
     #ar-ui {
@@ -103,18 +79,24 @@
 
     #message {
       position: fixed;
-      top: 12px;
       left: 50%;
+      top: 12px;
       transform: translateX(-50%);
-      width: max-content;
       max-width: calc(100vw - 24px);
-      box-sizing: border-box;
       padding: 10px 14px;
       border-radius: 999px;
       color: #fff;
-      background: rgba(0, 0, 0, 0.72);
+      background: rgba(0,0,0,.72);
       font-size: 14px;
       text-align: center;
+      box-sizing: border-box;
+    }
+
+    #open-collection-btn {
+      position: fixed;
+      top: 12px;
+      right: 12px;
+      pointer-events: auto;
     }
 
     #collect-btn {
@@ -122,18 +104,11 @@
       left: 50%;
       bottom: 24px;
       transform: translateX(-50%);
-      color: #fff;
-      background: #ff5722;
       display: none;
       pointer-events: auto;
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
-    }
-
-    #open-collection-btn {
-      position: fixed;
-      right: 12px;
-      top: 12px;
-      pointer-events: auto;
+      color: #fff;
+      background: #ff5722;
+      box-shadow: 0 8px 24px rgba(0,0,0,.3);
     }
 
     #collection-list {
@@ -143,173 +118,27 @@
       text-align: left;
     }
 
-    .collection-item {
+    .collection-item, .empty {
       padding: 14px 16px;
       border-radius: 14px;
       background: #f3f4f6;
-      font-weight: 700;
     }
 
-    .empty {
-      padding: 18px;
-      border-radius: 14px;
-      background: #f3f4f6;
-      color: #666;
-    }
+    .collection-item { font-weight: 700; }
+    .empty { color: #666; }
 
-    .row {
-      display: flex;
-      gap: 10px;
-    }
-
-    .row button {
-      flex: 1;
-    }
+    .row { display: flex; gap: 10px; }
+    .row button { flex: 1; }
   </style>
-
-  <script>
-    const DINOSAURS = {
-      Protoceratops: {
-        name: "プロトケラトプス",
-        marker: "markers/pattern-stanp1.patt",
-        model: "#protoceratopsModel",
-        scale: "1 1 1"
-      },
-      Ravjaa: {
-        name: "ラウジャア",
-        marker: "markers/pattern-stanp2.patt",
-        model: "#ravjaaModel",
-        scale: "1 1 1"
-      },
-      Corythosaurus: {
-        name: "コリトサウルス",
-        marker: "markers/pattern-stanp3.patt",
-        model: "#corythosaurusModel",
-        scale: "1 1 1"
-      },
-      Zavacephale: {
-        name: "サヴァケファレ",
-        marker: "markers/pattern-stanp4.patt",
-        model: "#zavacephaleModel",
-        scale: "0.07 0.07 0.07"
-      }
-    };
-
-    const STORAGE_KEY = "ar_dinosaur_collection";
-    let activeMarkerId = null;
-
-    AFRAME.registerComponent("marker-handler", {
-      init: function () {
-        const markerId = this.el.getAttribute("data-marker-id");
-        const collectBtn = document.getElementById("collect-btn");
-        const message = document.getElementById("message");
-
-        this.el.addEventListener("markerFound", () => {
-          activeMarkerId = markerId;
-          collectBtn.style.display = "block";
-          message.textContent = `${DINOSAURS[markerId].name} を認識しました`;
-        });
-
-        this.el.addEventListener("markerLost", () => {
-          if (activeMarkerId === markerId) activeMarkerId = null;
-          collectBtn.style.display = "none";
-          message.textContent = "マーカーをカメラに映してください";
-        });
-      }
-    });
-
-    AFRAME.registerComponent("auto-center", {
-      init: function () {
-        this.el.addEventListener("model-loaded", () => {
-          const mesh = this.el.getObject3D("mesh");
-          if (!mesh) return;
-          const box = new THREE.Box3().setFromObject(mesh);
-          const center = new THREE.Vector3();
-          box.getCenter(center);
-          this.el.setAttribute("position", `${-center.x} ${-center.y} ${-center.z}`);
-        });
-      }
-    });
-
-    function getCollection() {
-      return JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
-    }
-
-    function saveCollection(items) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify([...new Set(items)]));
-    }
-
-    function addActiveMarkerToCollection() {
-      if (!activeMarkerId) return;
-      const items = getCollection();
-      if (!items.includes(activeMarkerId)) items.push(activeMarkerId);
-      saveCollection(items);
-      document.getElementById("message").textContent = `${DINOSAURS[activeMarkerId].name} をコレクションに追加しました`;
-      document.getElementById("collect-btn").style.display = "none";
-    }
-
-    function renderCollection() {
-      const list = document.getElementById("collection-list");
-      const items = getCollection();
-      list.innerHTML = "";
-
-      if (items.length === 0) {
-        list.innerHTML = '<div class="empty">まだコレクションがありません。AR画面でマーカーを認識して追加してください。</div>';
-        return;
-      }
-
-      items.forEach((id) => {
-        const div = document.createElement("div");
-        div.className = "collection-item";
-        div.textContent = `✓ ${DINOSAURS[id]?.name || id}`;
-        list.appendChild(div);
-      });
-    }
-
-    window.addEventListener("DOMContentLoaded", () => {
-      const scene = document.querySelector("a-scene");
-      const startBtn = document.getElementById("start-btn");
-      const statusText = document.getElementById("status-text");
-
-      scene.addEventListener("loaded", () => {
-        statusText.textContent = "準備が完了しました";
-        document.querySelector(".spinner").style.display = "none";
-        startBtn.style.display = "block";
-      });
-
-      startBtn.addEventListener("click", () => {
-        document.getElementById("start-screen").style.display = "none";
-      });
-
-      document.getElementById("collect-btn").addEventListener("click", addActiveMarkerToCollection);
-
-      document.getElementById("open-collection-btn").addEventListener("click", () => {
-        renderCollection();
-        document.getElementById("collection-screen").style.display = "flex";
-      });
-
-      document.getElementById("close-collection-btn").addEventListener("click", () => {
-        document.getElementById("collection-screen").style.display = "none";
-      });
-
-      document.getElementById("reset-btn").addEventListener("click", () => {
-        if (!confirm("コレクションをリセットしますか？")) return;
-        localStorage.removeItem(STORAGE_KEY);
-        renderCollection();
-      });
-    });
-  </script>
 </head>
-
 <body>
   <div id="start-screen">
     <div class="card">
       <h1>AR恐竜コレクション</h1>
-      <p>モデルとARカメラを準備しています。</p>
-      <p>スマホではカメラ許可を求められたら許可してください。</p>
-      <div class="spinner"></div>
-      <p id="status-text">読み込み中...</p>
+      <p>ARカメラを起動します。</p>
+      <p>カメラ許可が出たら「許可」を押してください。</p>
       <button id="start-btn" class="primary">ARを開始する</button>
+      <p id="status-text">※ GitHub Pagesなどの https 環境で開いてください。</p>
     </div>
   </div>
 
@@ -333,36 +162,131 @@
   <a-scene
     embedded
     vr-mode-ui="enabled: false"
-    renderer="colorManagement: true"
+    renderer="colorManagement: true; antialias: true"
     arjs="sourceType: webcam; debugUIEnabled: false; detectionMode: mono;">
 
     <a-assets timeout="60000">
-      <a-asset-item id="protoceratopsModel" src="models/protoceratops/Protoceratops.glb"></a-asset-item>
-      <a-asset-item id="ravjaaModel" src="models/ravjaa/Ravjaa.glb"></a-asset-item>
-      <a-asset-item id="corythosaurusModel" src="models/corythosaurus/Corythosaurus.glb"></a-asset-item>
-      <a-asset-item id="zavacephaleModel" src="models/zavacephale/Zavacephale.glb"></a-asset-item>
+      <!-- スクショの現在のフォルダ構成に合わせたパス -->
+      <a-asset-item id="protoceratopsModel" src="models/プロトケラプス/Protoceratops.glb"></a-asset-item>
+      <a-asset-item id="ravjaaModel" src="models/ラヴジャア/Ravjaa.glb"></a-asset-item>
+      <a-asset-item id="corythosaurusModel" src="models/コリトサウルス/Corythosaurus.glb"></a-asset-item>
+      <a-asset-item id="zavacephaleModel" src="models/サヴァケファレ/Zavacephale.glb"></a-asset-item>
     </a-assets>
 
-    <a-entity light="type: ambient; intensity: 1.4"></a-entity>
-    <a-entity light="type: directional; intensity: 0.8" position="1 2 1"></a-entity>
+    <a-entity light="type: ambient; intensity: 1.5"></a-entity>
+    <a-entity light="type: directional; intensity: 0.9" position="1 2 1"></a-entity>
 
     <a-marker type="pattern" url="markers/pattern-stanp1.patt" data-marker-id="Protoceratops" marker-handler>
-      <a-entity gltf-model="#protoceratopsModel" scale="1 1 1" rotation="0 0 0" auto-center></a-entity>
+      <a-entity gltf-model="#protoceratopsModel" scale="1 1 1" rotation="0 0 0" position="0 0 0"></a-entity>
     </a-marker>
 
     <a-marker type="pattern" url="markers/pattern-stanp2.patt" data-marker-id="Ravjaa" marker-handler>
-      <a-entity gltf-model="#ravjaaModel" scale="1 1 1" rotation="0 0 0" auto-center></a-entity>
+      <a-entity gltf-model="#ravjaaModel" scale="1 1 1" rotation="0 0 0" position="0 0 0"></a-entity>
     </a-marker>
 
     <a-marker type="pattern" url="markers/pattern-stanp3.patt" data-marker-id="Corythosaurus" marker-handler>
-      <a-entity gltf-model="#corythosaurusModel" scale="1 1 1" rotation="0 0 0" auto-center></a-entity>
+      <a-entity gltf-model="#corythosaurusModel" scale="1 1 1" rotation="0 0 0" position="0 0 0"></a-entity>
     </a-marker>
 
     <a-marker type="pattern" url="markers/pattern-stanp4.patt" data-marker-id="Zavacephale" marker-handler>
-      <a-entity gltf-model="#zavacephaleModel" scale="0.07 0.07 0.07" rotation="0 0 0" auto-center></a-entity>
+      <a-entity gltf-model="#zavacephaleModel" scale="0.07 0.07 0.07" rotation="0 0 0" position="0 0 0"></a-entity>
     </a-marker>
 
     <a-entity camera></a-entity>
   </a-scene>
+
+  <script>
+    const DINOSAURS = {
+      Protoceratops: { name: "プロトケラトプス" },
+      Ravjaa: { name: "ラヴジャア" },
+      Corythosaurus: { name: "コリトサウルス" },
+      Zavacephale: { name: "サヴァケファレ" }
+    };
+
+    const STORAGE_KEY = "ar_dinosaur_collection";
+    let activeMarkerId = null;
+
+    AFRAME.registerComponent("marker-handler", {
+      init: function () {
+        const markerId = this.el.getAttribute("data-marker-id");
+        const collectBtn = document.getElementById("collect-btn");
+        const message = document.getElementById("message");
+
+        this.el.addEventListener("markerFound", () => {
+          activeMarkerId = markerId;
+          collectBtn.style.display = "block";
+          message.textContent = DINOSAURS[markerId].name + " を認識しました";
+        });
+
+        this.el.addEventListener("markerLost", () => {
+          if (activeMarkerId === markerId) activeMarkerId = null;
+          collectBtn.style.display = "none";
+          message.textContent = "マーカーをカメラに映してください";
+        });
+      }
+    });
+
+    function getCollection() {
+      try {
+        return JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+      } catch (e) {
+        return [];
+      }
+    }
+
+    function saveCollection(items) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify([...new Set(items)]));
+    }
+
+    function addActiveMarkerToCollection() {
+      if (!activeMarkerId) return;
+      const items = getCollection();
+      if (!items.includes(activeMarkerId)) items.push(activeMarkerId);
+      saveCollection(items);
+      document.getElementById("message").textContent = DINOSAURS[activeMarkerId].name + " をコレクションに追加しました";
+      document.getElementById("collect-btn").style.display = "none";
+    }
+
+    function renderCollection() {
+      const list = document.getElementById("collection-list");
+      const items = getCollection();
+      list.innerHTML = "";
+
+      if (items.length === 0) {
+        list.innerHTML = '<div class="empty">まだコレクションがありません。</div>';
+        return;
+      }
+
+      items.forEach((id) => {
+        const div = document.createElement("div");
+        div.className = "collection-item";
+        div.textContent = "✓ " + (DINOSAURS[id]?.name || id);
+        list.appendChild(div);
+      });
+    }
+
+    window.addEventListener("DOMContentLoaded", () => {
+      document.getElementById("start-btn").addEventListener("click", () => {
+        document.getElementById("start-screen").style.display = "none";
+      });
+
+      document.getElementById("collect-btn").addEventListener("click", addActiveMarkerToCollection);
+
+      document.getElementById("open-collection-btn").addEventListener("click", () => {
+        renderCollection();
+        document.getElementById("collection-screen").style.display = "flex";
+      });
+
+      document.getElementById("close-collection-btn").addEventListener("click", () => {
+        document.getElementById("collection-screen").style.display = "none";
+      });
+
+      document.getElementById("reset-btn").addEventListener("click", () => {
+        if (!confirm("コレクションをリセットしますか？")) return;
+        localStorage.removeItem(STORAGE_KEY);
+        renderCollection();
+      });
+    });
+  </script>
 </body>
 </html>

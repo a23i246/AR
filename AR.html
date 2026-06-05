@@ -294,7 +294,7 @@
     .a-canvas {
       position: fixed !important;
       z-index: 1 !important;
-    }  
+    }
   </style>
 </head>
 
@@ -333,7 +333,7 @@
     <a-scene
       embedded
       vr-mode-ui="enabled: false"
-      arjs="sourceType: webcam; debugUIEnabled: false;"
+      arjs="sourceType: webcam; debugUIEnabled: false; sourceWidth: 480; sourceHeight: 640; displayWidth: 360; displayHeight: 480;"
       renderer="colorManagement: true; exposure: 1.2;"
       gltf-model="dracoDecoderPath: https://www.gstatic.com/draco/versioned/decoders/1.5.6/;"
     >
@@ -522,39 +522,23 @@
 
       if (!video) return;
 
-      const cssW = document.documentElement.clientWidth;
-      const cssH = document.documentElement.clientHeight;
+      const cssW = document.documentElement.clientWidth || window.innerWidth;
+      const cssH = document.documentElement.clientHeight || window.innerHeight;
 
-      const realW = video.videoWidth || 480;
-      const realH = video.videoHeight || 640;
+      const targetW = cssW;
+      const targetH = Math.round(cssW * 640 / 480);
 
-      const screenRatio = cssW / cssH;
-      const videoRatio = realW / realH;
+      const left = 0;
+      const top = Math.round((cssH - targetH) / 2);
 
-      let displayW;
-      let displayH;
-
-      // カメラ映像を拡大クロップせず、画面内に収める
-      if (screenRatio > videoRatio) {
-        displayH = cssH;
-        displayW = displayH * videoRatio;
-      } else {
-        displayW = cssW;
-        displayH = displayW / videoRatio;
-      }
-
-      const left = (cssW - displayW) / 2;
-      const top = (cssH - displayH) / 2;
-
-      // videoとcanvasに同じ表示サイズを強制する
       const targets = [video, canvas].filter(Boolean);
 
       targets.forEach((el, index) => {
         el.style.setProperty("position", "fixed", "important");
         el.style.setProperty("left", `${left}px`, "important");
         el.style.setProperty("top", `${top}px`, "important");
-        el.style.setProperty("width", `${displayW}px`, "important");
-        el.style.setProperty("height", `${displayH}px`, "important");
+        el.style.setProperty("width", `${targetW}px`, "important");
+        el.style.setProperty("height", `${targetH}px`, "important");
         el.style.setProperty("max-width", "none", "important");
         el.style.setProperty("max-height", "none", "important");
         el.style.setProperty("min-width", "0", "important");
@@ -565,14 +549,6 @@
         el.style.setProperty("padding", "0", "important");
         el.style.setProperty("z-index", index === 0 ? "0" : "1", "important");
       });
-
-      video.style.setProperty("background", "black", "important");
-
-      if (canvas) {
-        const dpr = window.devicePixelRatio || 1;
-        canvas.width = Math.round(displayW * dpr);
-        canvas.height = Math.round(displayH * dpr);
-      }
     }
 
     function startCameraFix() {
@@ -585,7 +561,7 @@
         forceUIFront();
       }, 100);
     }
-    
+
     function setupMarkerEvents() {
       const collectBtn = document.getElementById("collect-btn");
       const markers = document.querySelectorAll("a-marker");
